@@ -1,0 +1,1414 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  FlatList,
+  StatusBar,
+  Animated,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+  Image,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import MaskedView from '@react-native-masked-view/masked-view';
+import { CompositeNavigationProp } from '@react-navigation/native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { colors, typography, spacing, radius } from '../../../theme';
+import { CategoryChip, MealCard, NourishrIcon, TextField, Badge } from '../../../components';
+import { useApp } from '../../../context/AppContext';
+import { Meal } from '../../../types';
+import { MainTabParamList, HomeStackParamList } from '../../../navigation/types';
+
+type HomeScreenNavigationProp = CompositeNavigationProp<
+  NativeStackNavigationProp<HomeStackParamList, 'HomeMain'>,
+  BottomTabNavigationProp<MainTabParamList>
+>;
+
+type HomeScreenProps = {
+  navigation: HomeScreenNavigationProp;
+};
+
+const FOOD_CATEGORIES = [
+  { id: 'breakfast', label: 'Breakfast', image: require('../../../../assets/images/breakfast.png') },
+  { id: 'lunch', label: 'Lunch', image: require('../../../../assets/images/lunch.png') },
+  { id: 'dinner', label: 'Dinner', image: require('../../../../assets/images/dinner.png') },
+  { id: 'beverages', label: 'Beverages', image: require('../../../../assets/images/beverages.png') },
+  { id: 'dessert', label: 'Dessert', image: require('../../../../assets/images/dessert.png') },
+  { id: 'fruits', label: 'Fruits', image: require('../../../../assets/images/fruits.png') },
+  { id: 'vegetables', label: 'Vegetables', image: require('../../../../assets/images/vegetables.png') },
+  { id: 'meat', label: 'Meat', image: require('../../../../assets/images/meat.png') },
+  { id: 'seafood', label: 'Seafood', image: require('../../../../assets/images/seafood.png') },
+  { id: 'pasta', label: 'Pasta', image: require('../../../../assets/images/pasta.png') },
+  { id: 'salad', label: 'Salad', image: require('../../../../assets/images/salad.png') },
+  { id: 'soup', label: 'Soup', image: require('../../../../assets/images/soup.png') },
+  { id: 'snacks', label: 'Snacks', image: require('../../../../assets/images/snacks.png') },
+];
+
+const FEATURED_MEALS = [
+  {
+    id: 1,
+    title: 'Creamy Pasta Carbonara',
+    subtitle: 'Italian • 450 cal',
+    image: 'https://images.unsplash.com/photo-1612874742237-6526221588e3?w=800&q=80',
+    type: 'COOK',
+    time: '25 min',
+    rating: 4.8,
+    price: 12.99,
+  },
+  {
+    id: 2,
+    title: 'Grilled Salmon Bowl',
+    subtitle: 'Healthy • 380 cal',
+    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80',
+    type: 'ORDER',
+    time: '15 min',
+    rating: 4.9,
+    price: 16.99,
+  },
+  {
+    id: 3,
+    title: 'Chicken Tikka Masala',
+    subtitle: 'Indian • 520 cal',
+    image: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=800&q=80',
+    type: 'COOK',
+    time: '35 min',
+    rating: 4.7,
+    price: 14.99,
+  },
+  {
+    id: 4,
+    title: 'Avocado Toast Deluxe',
+    subtitle: 'Breakfast • 320 cal',
+    image: 'https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?w=800&q=80',
+    type: 'COOK',
+    time: '10 min',
+    rating: 4.6,
+    price: 9.99,
+  },
+];
+
+const ORDER_NOW_MEALS = [
+  {
+    id: 1,
+    title: 'Classic Burger Combo',
+    subtitle: 'American • 650 cal',
+    image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80',
+    type: 'ORDER',
+    time: '20 min',
+    rating: 4.6,
+    price: 15.99,
+  },
+  {
+    id: 2,
+    title: 'Margherita Pizza',
+    subtitle: 'Italian • 580 cal',
+    image: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=800&q=80',
+    type: 'ORDER',
+    time: '25 min',
+    rating: 4.8,
+    price: 18.99,
+  },
+  {
+    id: 3,
+    title: 'Spicy Ramen Bowl',
+    subtitle: 'Japanese • 490 cal',
+    image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=800&q=80',
+    type: 'ORDER',
+    time: '18 min',
+    rating: 4.7,
+    price: 14.99,
+  },
+];
+
+const COOK_NOW_MEALS = [
+  {
+    id: 1,
+    title: 'Mediterranean Salad',
+    subtitle: 'Healthy • 280 cal',
+    image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&q=80',
+    type: 'COOK',
+    time: '15 min',
+    rating: 4.9,
+    price: 8.99,
+  },
+  {
+    id: 2,
+    title: 'Honey Garlic Chicken',
+    subtitle: 'Asian • 420 cal',
+    image: 'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=800&q=80',
+    type: 'COOK',
+    time: '30 min',
+    rating: 4.8,
+    price: 12.99,
+  },
+  {
+    id: 3,
+    title: 'Veggie Stir Fry',
+    subtitle: 'Asian • 310 cal',
+    image: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=800&q=80',
+    type: 'COOK',
+    time: '20 min',
+    rating: 4.7,
+    price: 10.99,
+  },
+];
+
+const TRENDING_MEALS = [
+  {
+    id: 1,
+    title: 'Truffle Mushroom Pizza',
+    subtitle: 'Italian • 620 cal',
+    image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=80',
+    rating: 4.9,
+    price: 22.99,
+  },
+  {
+    id: 2,
+    title: 'Spicy Tuna Roll',
+    subtitle: 'Japanese • 340 cal',
+    image: 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=800&q=80',
+    rating: 4.8,
+    price: 16.99,
+  },
+  {
+    id: 3,
+    title: 'Wagyu Beef Burger',
+    subtitle: 'American • 780 cal',
+    image: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=800&q=80',
+    rating: 4.9,
+    price: 28.99,
+  },
+  {
+    id: 4,
+    title: 'Lobster Mac & Cheese',
+    subtitle: 'Comfort Food • 890 cal',
+    image: 'https://images.unsplash.com/photo-1634141510639-d691d86f47be?w=800&q=80',
+    rating: 4.7,
+    price: 32.99,
+  },
+  {
+    id: 5,
+    title: 'Acai Smoothie Bowl',
+    subtitle: 'Healthy • 320 cal',
+    image: 'https://images.unsplash.com/photo-1590301157890-4810ed352733?w=800&q=80',
+    rating: 4.8,
+    price: 12.99,
+  },
+];
+
+const MORE_SUGGESTIONS = [
+  {
+    id: 1,
+    title: 'Thai Green Curry',
+    subtitle: 'Thai • 450 cal',
+    image: 'https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=800&q=80',
+    type: 'COOK',
+    time: '30 min',
+    rating: 4.7,
+    price: 13.99,
+  },
+  {
+    id: 2,
+    title: 'Caesar Salad Bowl',
+    subtitle: 'Healthy • 320 cal',
+    image: 'https://images.unsplash.com/photo-1546793665-c74683f339c1?w=800&q=80',
+    type: 'ORDER',
+    time: '15 min',
+    rating: 4.6,
+    price: 11.99,
+  },
+  {
+    id: 3,
+    title: 'BBQ Ribs Platter',
+    subtitle: 'American • 890 cal',
+    image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&q=80',
+    type: 'ORDER',
+    time: '25 min',
+    rating: 4.8,
+    price: 24.99,
+  },
+  {
+    id: 4,
+    title: 'Mushroom Risotto',
+    subtitle: 'Italian • 520 cal',
+    image: 'https://images.unsplash.com/photo-1476124369491-c4f9c6c6c8c2?w=800&q=80',
+    type: 'COOK',
+    time: '40 min',
+    rating: 4.9,
+    price: 15.99,
+  },
+];
+
+export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
+  const { user, aiRecommendationService } = useApp();
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [meals, setMeals] = useState<Meal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [greeting, setGreeting] = useState('');
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [statusBarStyle, setStatusBarStyle] = useState<'light-content' | 'dark-content'>('light-content');
+
+  // Dynamic greeting based on time and user status
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    const isNewUser = false; // TODO: Check if user joined within last 7 days
+    
+    if (isNewUser) {
+      return 'Welcome';
+    }
+    
+    // Time-based greetings
+    if (hour >= 5 && hour < 12) {
+      return 'Good morning';
+    } else if (hour >= 12 && hour < 17) {
+      return 'Good afternoon';
+    } else if (hour >= 17 && hour < 22) {
+      return 'Good evening';
+    } else {
+      return 'Hi there';
+    }
+  };
+
+  useEffect(() => {
+    setGreeting(getGreeting());
+    loadMeals();
+  }, []);
+
+  const loadMeals = async () => {
+    try {
+      setLoading(true);
+      const suggestions = await aiRecommendationService.getMealSuggestions();
+      setMeals(suggestions);
+    } catch (error) {
+      console.error('Error loading meals:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMealPress = (meal: Meal) => {
+    navigation.navigate('MealDetail', { meal });
+  };
+
+  const getInitials = () => {
+    if (!user?.fullName) return 'C';
+    return user.fullName
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const getFirstName = () => {
+    return user?.fullName?.split(' ')[0] || 'Cyriac';
+  };
+
+  const insets = useSafeAreaInsets();
+
+  // Handle scroll to change status bar
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: false,
+      listener: (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        // Change status bar style when scrolled past 50px (earlier for better visibility)
+        if (offsetY > 50 && statusBarStyle === 'light-content') {
+          setStatusBarStyle('dark-content');
+        } else if (offsetY <= 50 && statusBarStyle === 'dark-content') {
+          setStatusBarStyle('light-content');
+        }
+      },
+    }
+  );
+
+  // Interpolate background color for status bar overlay
+  const statusBarBackgroundColor = scrollY.interpolate({
+    inputRange: [0, 150],
+    outputRange: ['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 1)'],
+    extrapolate: 'clamp',
+  });
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle={statusBarStyle} translucent backgroundColor="transparent" />
+      
+      {/* Animated Status Bar Background */}
+      <Animated.View 
+        style={[
+          styles.statusBarOverlay,
+          { 
+            height: insets.top,
+            backgroundColor: statusBarBackgroundColor,
+          }
+        ]} 
+        pointerEvents="none"
+      />
+      
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        scrollEventThrottle={16}
+        onScroll={handleScroll}
+        style={styles.scrollView}
+      >
+        {/* Gradient Header Wrapper */}
+        <LinearGradient
+          colors={['#FF9500', '#FD6A2F']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.gradientHeader, { paddingTop: insets.top }]}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+              <View style={styles.headerLeft}>
+                <View style={styles.avatarContainer}>
+                  <Text style={styles.avatarEmoji}>👨‍🍳</Text>
+                </View>
+                <View style={styles.greetingContainer}>
+                  <Text style={styles.greetingSmall}>{greeting}</Text>
+                  <Text style={styles.greetingName}>{getFirstName()}</Text>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.notificationButton}>
+                <NourishrIcon name="Notification" size={20} color={colors.black} />
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>3</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Greeting Message */}
+            <View style={styles.greetingMessageContainer}>
+              <Text style={styles.greetingMessageTitle}>Feeling hungry?</Text>
+              <Text style={styles.greetingMessageSubtitle}>
+                What are we cooking or ordering today?
+              </Text>
+            </View>
+
+            {/* Search Bar */}
+            <View style={styles.searchContainer}>
+              <View style={styles.searchWrapper}>
+                <NourishrIcon 
+                  name="Search" 
+                  size={20} 
+                  color={colors.gray60}
+                  style={styles.searchIcon}
+                />
+                <TextField
+                  placeholder="Search meals, cuisines, restaurants…"
+                  style={styles.searchInput}
+                />
+              </View>
+            </View>
+        </LinearGradient>
+
+        {/* Premium Banner */}
+        <View style={styles.premiumBannerContainer}>
+          <View style={styles.premiumBanner}>
+            <View style={styles.premiumContent}>
+              <MaskedView
+                maskElement={
+                  <Text style={styles.premiumTitle}>Go to premium now!</Text>
+                }
+              >
+                <LinearGradient
+                  colors={['#FFD700', '#10B981']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Text style={[styles.premiumTitle, { opacity: 0 }]}>Go to premium now!</Text>
+                </LinearGradient>
+              </MaskedView>
+              <Text style={styles.premiumSubtitle}>
+                Cook with love, bring the flavors{'\n'}of the world to your table.
+              </Text>
+              <TouchableOpacity style={styles.premiumButton}>
+                <Text style={styles.premiumButtonText}>Start 5-day FREE Trial</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.premiumImageContainer}>
+              <Text style={styles.premiumEmoji}>🍗</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Food Categories */}
+        <View style={styles.categoriesSection}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoriesContainer}
+          >
+            {FOOD_CATEGORIES.map((category) => (
+              <TouchableOpacity
+                key={category.id}
+                style={styles.categoryItem}
+                onPress={() => setSelectedCategory(category.id)}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.categoryCircle,
+                  selectedCategory === category.id && styles.categoryCircleActive
+                ]}>
+                  <Image 
+                    source={category.image}
+                    style={styles.categoryImage}
+                    resizeMode="contain"
+                  />
+                </View>
+                <Text style={styles.categoryLabel}>{category.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Personalized Meal Recommendations */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>For You Today</Text>
+            <TouchableOpacity>
+              <Text style={styles.seeAllLink}>See All</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalScroll}
+          >
+            {FEATURED_MEALS.map((meal) => (
+              <TouchableOpacity key={meal.id} style={styles.mealCard} activeOpacity={0.9}>
+                {/* Full Background Image */}
+                <Image 
+                  source={{ uri: meal.image }}
+                  style={styles.mealImage}
+                  resizeMode="cover"
+                />
+                
+                {/* Dark Gradient Overlay */}
+                <LinearGradient
+                  colors={['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0.75)']}
+                  style={styles.mealCardOverlay}
+                />
+                
+                {/* Badges at Top */}
+                <View style={styles.mealBadgeContainer}>
+                  <Badge type={meal.type.toLowerCase() as 'cook' | 'order'} text={meal.type} />
+                  <Badge type="time" text={meal.time} />
+                </View>
+                
+                {/* Content at Bottom */}
+                <View style={styles.mealCardContent}>
+                  <Text style={styles.mealCardTitle}>{meal.title}</Text>
+                  <Text style={styles.mealCardSubtitle}>{meal.subtitle}</Text>
+                  <View style={styles.mealCardFooter}>
+                    <View style={styles.ratingContainer}>
+                      <Text style={styles.ratingEmoji}>⭐</Text>
+                      <Text style={styles.ratingText}>{meal.rating}</Text>
+                    </View>
+                    <Text style={styles.mealCardPrice}>${meal.price}</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* What's in Your Fridge - Quick Action */}
+        <TouchableOpacity style={styles.fridgeActionCard}>
+          <View style={styles.fridgeActionContent}>
+            <Text style={styles.fridgeActionEmoji}>🧊</Text>
+            <View style={styles.fridgeActionText}>
+              <Text style={styles.fridgeActionTitle}>What's in your fridge?</Text>
+              <Text style={styles.fridgeActionSubtitle}>Get instant meal ideas</Text>
+            </View>
+          </View>
+          <NourishrIcon name="ChevronRight" size={20} color={colors.gray60} />
+        </TouchableOpacity>
+
+        {/* Smart Order Now Picks */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Order Now 🚀</Text>
+            <TouchableOpacity>
+              <Text style={styles.seeAllLink}>See All</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalScroll}
+          >
+            {ORDER_NOW_MEALS.map((meal) => (
+              <TouchableOpacity key={meal.id} style={styles.mealCard} activeOpacity={0.9}>
+                {/* Full Background Image */}
+                <Image 
+                  source={{ uri: meal.image }}
+                  style={styles.mealImage}
+                  resizeMode="cover"
+                />
+                
+                {/* Dark Gradient Overlay */}
+                <LinearGradient
+                  colors={['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0.75)']}
+                  style={styles.mealCardOverlay}
+                />
+                
+                {/* Badges at Top */}
+                <View style={styles.mealBadgeContainer}>
+                  <Badge type={meal.type.toLowerCase() as 'cook' | 'order'} text={meal.type} />
+                  <Badge type="time" text={meal.time} />
+                </View>
+                
+                {/* Content at Bottom */}
+                <View style={styles.mealCardContent}>
+                  <Text style={styles.mealCardTitle}>{meal.title}</Text>
+                  <Text style={styles.mealCardSubtitle}>{meal.subtitle}</Text>
+                  <View style={styles.mealCardFooter}>
+                    <View style={styles.ratingContainer}>
+                      <Text style={styles.ratingEmoji}>⭐</Text>
+                      <Text style={styles.ratingText}>{meal.rating}</Text>
+                    </View>
+                    <Text style={styles.mealCardPrice}>${meal.price}</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Trending in Your Region */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Trending Near You 🔥</Text>
+            <TouchableOpacity>
+              <Text style={styles.seeAllLink}>See All</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalScroll}
+          >
+            {TRENDING_MEALS.map((meal) => (
+              <TouchableOpacity key={meal.id} style={styles.trendingCard} activeOpacity={0.9}>
+                <Image 
+                  source={{ uri: meal.image }}
+                  style={styles.trendingImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.trendingCardContent}>
+                  <Text style={styles.trendingCardTitle}>{meal.title}</Text>
+                  <Text style={styles.trendingCardSubtitle}>{meal.subtitle}</Text>
+                  <View style={styles.trendingCardFooter}>
+                    <View style={styles.ratingContainer}>
+                      <Text style={styles.ratingEmoji}>⭐</Text>
+                      <Text style={styles.ratingText}>{meal.rating}</Text>
+                    </View>
+                    <Text style={styles.trendingCardPrice}>${meal.price}</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Smart Cook This Now */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Cook This Now 👨‍🍳</Text>
+            <TouchableOpacity>
+              <Text style={styles.seeAllLink}>See All</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalScroll}
+          >
+            {COOK_NOW_MEALS.map((meal) => (
+              <TouchableOpacity key={meal.id} style={styles.mealCard} activeOpacity={0.9}>
+                {/* Full Background Image */}
+                <Image 
+                  source={{ uri: meal.image }}
+                  style={styles.mealImage}
+                  resizeMode="cover"
+                />
+                
+                {/* Dark Gradient Overlay */}
+                <LinearGradient
+                  colors={['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0.75)']}
+                  style={styles.mealCardOverlay}
+                />
+                
+                {/* Badges at Top */}
+                <View style={styles.mealBadgeContainer}>
+                  <Badge type={meal.type.toLowerCase() as 'cook' | 'order'} text={meal.type} />
+                  <Badge type="time" text={meal.time} />
+                </View>
+                
+                {/* Content at Bottom */}
+                <View style={styles.mealCardContent}>
+                  <Text style={styles.mealCardTitle}>{meal.title}</Text>
+                  <Text style={styles.mealCardSubtitle}>{meal.subtitle}</Text>
+                  <View style={styles.mealCardFooter}>
+                    <View style={styles.ratingContainer}>
+                      <Text style={styles.ratingEmoji}>⭐</Text>
+                      <Text style={styles.ratingText}>{meal.rating}</Text>
+                    </View>
+                    <Text style={styles.mealCardPrice}>${meal.price}</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Weekly Meal Plan */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>This Week's Plan 📅</Text>
+            <TouchableOpacity>
+              <Text style={styles.seeAllLink}>View Plan</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.weeklyPlanCard}>
+            <View style={styles.weeklyPlanHeader}>
+              <Text style={styles.weeklyPlanEmoji}>🗓️</Text>
+              <View style={styles.weeklyPlanHeaderText}>
+                <Text style={styles.weeklyPlanTitle}>Your Personalized Meal Plan</Text>
+                <Text style={styles.weeklyPlanSubtitle}>7 days • Balanced nutrition</Text>
+              </View>
+            </View>
+            <View style={styles.weeklyPlanDays}>
+              {['Mon', 'Tue', 'Wed', 'Thu'].map((day) => (
+                <View key={day} style={styles.dayChip}>
+                  <Text style={styles.dayChipText}>{day}</Text>
+                </View>
+              ))}
+            </View>
+            <TouchableOpacity style={styles.weeklyPlanButton}>
+              <Text style={styles.weeklyPlanButtonText}>View Full Plan</Text>
+              <NourishrIcon name="ChevronRight" size={16} color={colors.white} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* More Suggestions */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>More Suggestions</Text>
+            <TouchableOpacity onPress={loadMeals}>
+              <NourishrIcon name="Refresh" size={20} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalScroll}
+          >
+            {MORE_SUGGESTIONS.map((meal) => (
+              <TouchableOpacity key={meal.id} style={styles.mealCard} activeOpacity={0.9}>
+                {/* Full Background Image */}
+                <Image 
+                  source={{ uri: meal.image }}
+                  style={styles.mealImage}
+                  resizeMode="cover"
+                />
+                
+                {/* Dark Gradient Overlay */}
+                <LinearGradient
+                  colors={['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0.75)']}
+                  style={styles.mealCardOverlay}
+                />
+                
+                {/* Badges at Top */}
+                <View style={styles.mealBadgeContainer}>
+                  <Badge type={meal.type.toLowerCase() as 'cook' | 'order'} text={meal.type} />
+                  <Badge type="time" text={meal.time} />
+                </View>
+                
+                {/* Content at Bottom */}
+                <View style={styles.mealCardContent}>
+                  <Text style={styles.mealCardTitle}>{meal.title}</Text>
+                  <Text style={styles.mealCardSubtitle}>{meal.subtitle}</Text>
+                  <View style={styles.mealCardFooter}>
+                    <View style={styles.ratingContainer}>
+                      <Text style={styles.ratingEmoji}>⭐</Text>
+                      <Text style={styles.ratingText}>{meal.rating}</Text>
+                    </View>
+                    <Text style={styles.mealCardPrice}>${meal.price}</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </ScrollView>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.white,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  statusBarOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+  },
+  gradientHeader: {
+    borderBottomLeftRadius: 34,
+    borderBottomRightRadius: 34,
+    paddingBottom: spacing.sm,
+    overflow: 'hidden',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  avatarContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  avatarEmoji: {
+    fontSize: 28,
+  },
+  greetingContainer: {
+    flex: 1,
+  },
+  greetingSmall: {
+    ...typography.caption,
+    fontSize: 14,
+    color: colors.black,
+    marginBottom: 2,
+    fontWeight: '500',
+  },
+  greetingName: {
+    ...typography.headingM,
+    fontSize: 26,
+    fontWeight: '700',
+    color: colors.white,
+  },
+  notificationButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.white,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#10B981',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
+  notificationBadgeText: {
+    ...typography.caption,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.white,
+  },
+  greetingMessageContainer: {
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  greetingMessageTitle: {
+    ...typography.headingL,
+    fontSize: 25,
+    fontWeight: '700',
+    color: colors.white,
+    marginBottom: spacing.xs,
+  },
+  greetingMessageSubtitle: {
+    ...typography.body,
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    lineHeight: 22,
+  },
+  searchContainer: {
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  searchWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  searchIcon: {
+    marginRight: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.full,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+  },
+  premiumBannerContainer: {
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  premiumBanner: {
+    backgroundColor: colors.black,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+  },
+  premiumContent: {
+    flex: 1,
+    paddingRight: spacing.md,
+  },
+  premiumTitle: {
+    ...typography.headingM,
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.white,
+    marginBottom: spacing.xs,
+  },
+  premiumSubtitle: {
+    ...typography.caption,
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 18,
+    marginBottom: spacing.md,
+  },
+  premiumButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: radius.full,
+    alignSelf: 'flex-start',
+  },
+  premiumButtonText: {
+    ...typography.bodyMedium,
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  premiumImageContainer: {
+    width: 100,
+    height: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  premiumEmoji: {
+    fontSize: 80,
+  },
+  categoriesSection: {
+    marginBottom: spacing.lg,
+  },
+  categoriesContainer: {
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
+  },
+  categoryItem: {
+    alignItems: 'center',
+    width: 80,
+  },
+  categoryCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#E4DED6',
+    borderWidth: 2,
+    borderColor: '#E4DED6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  categoryCircleActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  categoryImage: {
+    width: 48,
+    height: 48,
+  },
+  categoryLabel: {
+    ...typography.caption,
+    fontSize: 12,
+    color: colors.black,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  seeAllChip: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: radius.full,
+    marginRight: spacing.sm,
+    backgroundColor: colors.gray20,
+    borderWidth: 1,
+    borderColor: colors.gray30,
+  },
+  seeAllChipSelected: {
+    backgroundColor: colors.black,
+    borderColor: colors.black,
+  },
+  seeAllText: {
+    ...typography.bodyMedium,
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.gray80,
+  },
+  seeAllTextSelected: {
+    color: colors.white,
+  },
+  section: {
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.md,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    ...typography.headingS,
+    color: colors.black,
+  },
+  loadingText: {
+    ...typography.body,
+    color: colors.gray60,
+    textAlign: 'center',
+    paddingVertical: spacing.xl,
+  },
+  // Fridge Action Card
+  fridgeActionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.gray10,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.gray20,
+  },
+  fridgeActionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  fridgeActionEmoji: {
+    fontSize: 32,
+    marginRight: spacing.md,
+  },
+  fridgeActionText: {
+    flex: 1,
+  },
+  fridgeActionTitle: {
+    ...typography.bodyMedium,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.black,
+    marginBottom: 2,
+  },
+  fridgeActionSubtitle: {
+    ...typography.caption,
+    color: colors.gray60,
+  },
+  // See All Link
+  seeAllLink: {
+    ...typography.bodyMedium,
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  // Horizontal Scroll
+  horizontalScroll: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.md,
+  },
+  // Meal Cards
+  mealCard: {
+    width: 240,
+    height: 320,
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginRight: spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  mealImage: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+  },
+  mealImagePlaceholder: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.gray20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mealCardOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '100%',
+  },
+  mealImageEmoji: {
+    fontSize: 64,
+  },
+  mealBadgeContainer: {
+    position: 'absolute',
+    top: spacing.sm,
+    left: spacing.sm,
+    right: spacing.sm,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  cookBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  orderBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#10B981',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  badgeText: {
+    ...typography.caption,
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.white,
+    letterSpacing: 0.5,
+  },
+  timeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  deliveryBadge: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.sm,
+  },
+  difficultyBadge: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.sm,
+  },
+  timeBadgeText: {
+    ...typography.caption,
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  mealCardContent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: spacing.md,
+  },
+  mealCardTitle: {
+    ...typography.bodyLarge,
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.white,
+    marginBottom: 4,
+  },
+  mealCardSubtitle: {
+    ...typography.caption,
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginBottom: spacing.sm,
+  },
+  mealCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  ratingEmoji: {
+    fontSize: 16,
+  },
+  ratingText: {
+    ...typography.caption,
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.white,
+    marginLeft: 4,
+  },
+  mealCardPrice: {
+    ...typography.bodyMedium,
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.white,
+  },
+  // Trending Cards
+  trendingCard: {
+    width: 200,
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 0.5,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    marginRight: spacing.md,
+  },
+  trendingImage: {
+    width: '100%',
+    height: 120,
+  },
+  trendingCardContent: {
+    padding: spacing.md,
+  },
+  trendingCardTitle: {
+    ...typography.bodyMedium,
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.black,
+    marginBottom: 4,
+  },
+  trendingCardSubtitle: {
+    ...typography.caption,
+    fontSize: 12,
+    color: colors.gray60,
+    marginBottom: spacing.sm,
+  },
+  trendingCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  trendingCardPrice: {
+    ...typography.bodyMedium,
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  // Weekly Plan Card
+  weeklyPlanCard: {
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  weeklyPlanHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  weeklyPlanEmoji: {
+    fontSize: 32,
+    marginRight: spacing.md,
+  },
+  weeklyPlanHeaderText: {
+    flex: 1,
+  },
+  weeklyPlanTitle: {
+    ...typography.bodyMedium,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.black,
+    marginBottom: 2,
+  },
+  weeklyPlanSubtitle: {
+    ...typography.caption,
+    color: colors.gray60,
+  },
+  weeklyPlanDays: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  dayChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.gray10,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.gray30,
+  },
+  dayChipText: {
+    ...typography.caption,
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.gray80,
+  },
+  weeklyPlanButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    gap: spacing.xs,
+  },
+  weeklyPlanButtonText: {
+    ...typography.bodyMedium,
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  // Chef Cards
+  chefCard: {
+    width: 160,
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  chefAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.gray20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  chefAvatarEmoji: {
+    fontSize: 32,
+  },
+  chefName: {
+    ...typography.bodyMedium,
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.black,
+    marginBottom: 2,
+  },
+  chefSpecialty: {
+    ...typography.caption,
+    fontSize: 12,
+    color: colors.gray60,
+    marginBottom: spacing.sm,
+  },
+  chefStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  chefStat: {
+    alignItems: 'center',
+  },
+  chefStatValue: {
+    ...typography.bodyMedium,
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.black,
+  },
+  chefStatLabel: {
+    ...typography.caption,
+    fontSize: 10,
+    color: colors.gray60,
+  },
+  chefStatDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: colors.gray30,
+  },
+  chefFollowButton: {
+    width: '100%',
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    alignItems: 'center',
+  },
+  chefFollowButtonText: {
+    ...typography.bodyMedium,
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.white,
+  },
+});
