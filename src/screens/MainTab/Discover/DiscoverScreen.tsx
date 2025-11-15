@@ -13,6 +13,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, radius } from '../../../theme';
 import { NourishrIcon } from '../../../components';
+import { HeroCard } from './components/HeroCard';
+import { CuisineGrid } from './components/CuisineGrid';
+import { TrendingGrid } from './components/TrendingGrid';
+import { CollectionsCarousel } from './components/CollectionsCarousel';
 
 type FilterChip = {
   id: string;
@@ -44,31 +48,70 @@ const FILTER_CHIPS: FilterChip[] = [
 const COLLECTIONS: Collection[] = [
   {
     id: '1',
-    title: '5-Ingredient Meals',
+    title: 'Comfort Food',
     subtitle: 'Simple & quick recipes',
     image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800',
     count: '24 recipes',
   },
   {
     id: '2',
-    title: 'Budget Meals',
+    title: 'Lean & Clean Meals',
     subtitle: 'Delicious under $10',
     image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800',
     count: '32 recipes',
   },
   {
     id: '3',
-    title: 'High-Protein Week',
+    title: 'Seasonal Favorites',
     subtitle: 'Build muscle & strength',
     image: 'https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=800',
     count: '18 recipes',
   },
   {
     id: '4',
-    title: 'Seasonal Picks',
+    title: 'Date Night Ideas',
     subtitle: 'Fresh winter favorites',
     image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800',
     count: '28 recipes',
+  },
+];
+
+const TRENDING_ITEMS = [
+  {
+    id: '1',
+    title: 'High-Protein Lunches',
+    tag: '30+ recipes',
+    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
+  },
+  {
+    id: '2',
+    title: 'Under 20 Minutes',
+    tag: 'Quick & Easy',
+    image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400',
+  },
+  {
+    id: '3',
+    title: 'Budget-Friendly Bowls',
+    tag: 'Under $10',
+    image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400',
+  },
+  {
+    id: '4',
+    title: 'Meal Prep Sunday',
+    tag: 'Batch Cooking',
+    image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400',
+  },
+  {
+    id: '5',
+    title: 'One-Pan Dinners',
+    tag: 'Easy Cleanup',
+    image: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400',
+  },
+  {
+    id: '6',
+    title: 'Vegetarian Delights',
+    tag: 'Plant-Based',
+    image: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=400',
   },
 ];
 
@@ -141,64 +184,51 @@ export const DiscoverScreen: React.FC = () => {
       </LinearGradient>
 
       {/* Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Popular Near You */}
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        bounces={true}
+      >
+        {/* Discover New Meals - Hero Card */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Popular Near You</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalScroll}
-          >
-            {COLLECTIONS.slice(0, 2).map((item) => (
-              <TouchableOpacity key={item.id} style={styles.popularCard}>
-                <Image source={{ uri: item.image }} style={styles.popularImage} />
-                <LinearGradient
-                  colors={['transparent', 'rgba(0,0,0,0.8)']}
-                  style={styles.popularOverlay}
-                >
-                  <Text style={styles.popularTitle}>{item.title}</Text>
-                  <Text style={styles.popularSubtitle}>{item.subtitle}</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          <HeroCard
+            title="30-Minute Dinners"
+            subtitle="Quick & delicious meals for busy weeknights"
+            image="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800"
+            onPress={() => console.log('Hero card pressed')}
+          />
         </View>
 
         {/* Explore by Cuisine */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Explore by Cuisine</Text>
-          <View style={styles.cuisineGrid}>
-            {['Italian', 'Mexican', 'Asian', 'Mediterranean'].map((cuisine) => (
-              <TouchableOpacity key={cuisine} style={styles.cuisineCard}>
-                <View style={styles.cuisineIcon}>
-                  <NourishrIcon name="Global" size={24} color={colors.primary} />
-                </View>
-                <Text style={styles.cuisineText}>{cuisine}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <CuisineGrid
+            onCuisinePress={(id) => console.log('Cuisine pressed:', id)}
+          />
+        </View>
+
+        {/* Trending This Week */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Trending This Week</Text>
+          <TrendingGrid
+            items={TRENDING_ITEMS}
+            onItemPress={(id) => console.log('Trending item pressed:', id)}
+          />
         </View>
 
         {/* Collections */}
-        <View style={styles.section}>
+        <View style={[styles.section, styles.lastSection]}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Collections</Text>
             <TouchableOpacity>
               <Text style={styles.seeAllText}>See all</Text>
             </TouchableOpacity>
           </View>
-          {COLLECTIONS.map((collection) => (
-            <TouchableOpacity key={collection.id} style={styles.collectionCard}>
-              <Image source={{ uri: collection.image }} style={styles.collectionImage} />
-              <View style={styles.collectionContent}>
-                <Text style={styles.collectionTitle}>{collection.title}</Text>
-                <Text style={styles.collectionSubtitle}>{collection.subtitle}</Text>
-                <Text style={styles.collectionCount}>{collection.count}</Text>
-              </View>
-              <NourishrIcon name="ChevronRight" size={20} color={colors.gray60} />
-            </TouchableOpacity>
-          ))}
+          <CollectionsCarousel
+            collections={COLLECTIONS}
+            onCollectionPress={(id) => console.log('Collection pressed:', id)}
+          />
         </View>
       </ScrollView>
     </View>
@@ -208,7 +238,7 @@ export const DiscoverScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: '#F8F9FA',
   },
   gradientHeader: {
     paddingBottom: spacing.md,
@@ -255,10 +285,17 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    backgroundColor: '#F8F9FA',
+  },
+  scrollContent: {
+    paddingBottom: spacing.xl * 2,
   },
   section: {
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
     paddingHorizontal: spacing.lg,
+  },
+  lastSection: {
+    marginBottom: spacing.xl,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -269,12 +306,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.headingM,
     color: colors.black,
+    fontSize: 20,
     fontWeight: '700',
     marginBottom: spacing.md,
   },
   seeAllText: {
     ...typography.bodySmall,
     color: colors.primary,
+    fontSize: 14,
     fontWeight: '600',
   },
   horizontalScroll: {

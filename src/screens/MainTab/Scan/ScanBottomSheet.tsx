@@ -1,9 +1,14 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, radius } from '../../../theme';
+import { slideUpBottomSheet, slideDownBottomSheet } from '../../../theme/animations';
 import { NourishrIcon } from '../../../components';
 import { CookWhatIHaveFlow } from './CookWhatIHaveFlow';
+import { ShuffleMealBottomSheet } from './ShuffleMealFlow';
+import { MealNutritionFlow } from './MealNutritionFlow';
+import { BarcodeFlow } from './BarcodeFlow';
+import { SmartPantryScan } from './SmartPantryScan';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const BOTTOM_SHEET_HEIGHT = SCREEN_HEIGHT * 0.75;
@@ -19,6 +24,14 @@ type ScanMode = {
 
 const SCAN_MODES: ScanMode[] = [
   {
+    id: 'shuffle-meal',
+    icon: 'Refresh',
+    title: 'Show Me What to Eat',
+    description: 'Get personalized meal suggestions for breakfast, lunch, and dinner based on your preferences.',
+    backgroundColor: '#FFF4E6',
+    iconColor: '#F77F00',
+  },
+  {
     id: 'cook-what-i-have',
     icon: 'ShoppingCart',
     title: 'Cook What I Have',
@@ -27,18 +40,10 @@ const SCAN_MODES: ScanMode[] = [
     iconColor: '#E63946',
   },
   {
-    id: 'plate',
-    icon: 'Cup',
-    title: 'Plate / meal calories',
-    description: 'Quick estimate of calories for a single plate or bowl.',
-    backgroundColor: '#FFF4E6',
-    iconColor: '#F77F00',
-  },
-  {
-    id: 'nutrition',
-    icon: 'SearchNormal',
-    title: 'Nutrition breakdown',
-    description: 'Get calories, macros and key nutrients for a meal.',
+    id: 'meal-nutrition',
+    icon: 'Health',
+    title: 'Meal Nutrition Analysis',
+    description: 'Get complete nutrition breakdown including calories, macros, and key nutrients for your meal.',
     backgroundColor: '#E8F5E9',
     iconColor: '#2D6A4F',
   },
@@ -58,14 +63,6 @@ const SCAN_MODES: ScanMode[] = [
     backgroundColor: '#F3E5F5',
     iconColor: '#7B1FA2',
   },
-  {
-    id: 'manual',
-    icon: 'Edit2',
-    title: 'Add ingredients manually',
-    description: 'Type or pick ingredients if you do not want to use the camera.',
-    backgroundColor: '#FFF9C4',
-    iconColor: '#F9A825',
-  },
 ];
 
 interface ScanBottomSheetProps {
@@ -77,26 +74,23 @@ export const ScanBottomSheet: React.FC<ScanBottomSheetProps> = ({ visible, onClo
   const insets = useSafeAreaInsets();
   const [selectedMode, setSelectedMode] = useState<string | null>(null);
   const [showCookWhatIHaveFlow, setShowCookWhatIHaveFlow] = useState(false);
+  const [showShuffleMealFlow, setShowShuffleMealFlow] = useState(false);
+  const [showMealNutritionFlow, setShowMealNutritionFlow] = useState(false);
+  const [showBarcodeFlow, setShowBarcodeFlow] = useState(false);
+  const [showSmartPantryScan, setShowSmartPantryScan] = useState(false);
   const slideAnim = useRef(new Animated.Value(BOTTOM_SHEET_HEIGHT)).current;
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (visible) {
-      // Slide up
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 50,
-        friction: 8,
-      }).start();
+      // Reset to bottom before animating up (ensures animation plays every time)
+      slideAnim.setValue(BOTTOM_SHEET_HEIGHT);
+      // Slide up with smooth spring animation
+      slideUpBottomSheet(slideAnim, 0).start();
     } else {
-      // Slide down
-      Animated.timing(slideAnim, {
-        toValue: BOTTOM_SHEET_HEIGHT,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
+      // Slide down smoothly
+      slideDownBottomSheet(slideAnim, BOTTOM_SHEET_HEIGHT).start();
     }
-  }, [visible, slideAnim]);
+  }, [visible]);
 
   const handleModeSelect = (modeId: string) => {
     setSelectedMode(modeId);
@@ -104,6 +98,34 @@ export const ScanBottomSheet: React.FC<ScanBottomSheetProps> = ({ visible, onClo
     if (modeId === 'cook-what-i-have') {
       // Open the Cook What I Have flow
       setShowCookWhatIHaveFlow(true);
+      // Close the mode selector after a short delay
+      setTimeout(() => {
+        onClose();
+      }, 100);
+    } else if (modeId === 'shuffle-meal') {
+      // Open the Shuffle Meal flow
+      setShowShuffleMealFlow(true);
+      // Close the mode selector after a short delay
+      setTimeout(() => {
+        onClose();
+      }, 100);
+    } else if (modeId === 'meal-nutrition') {
+      // Open the Meal Nutrition Analysis flow
+      setShowMealNutritionFlow(true);
+      // Close the mode selector after a short delay
+      setTimeout(() => {
+        onClose();
+      }, 100);
+    } else if (modeId === 'barcode') {
+      // Open the Barcode flow
+      setShowBarcodeFlow(true);
+      // Close the mode selector after a short delay
+      setTimeout(() => {
+        onClose();
+      }, 100);
+    } else if (modeId === 'pantry') {
+      // Open the Smart Pantry Scan flow
+      setShowSmartPantryScan(true);
       // Close the mode selector after a short delay
       setTimeout(() => {
         onClose();
@@ -119,7 +141,28 @@ export const ScanBottomSheet: React.FC<ScanBottomSheetProps> = ({ visible, onClo
     setShowCookWhatIHaveFlow(false);
   };
 
-  if (!visible && !showCookWhatIHaveFlow) return null;
+  const handleCloseShuffleMealFlow = () => {
+    setShowShuffleMealFlow(false);
+  };
+
+  const handleCloseMealNutritionFlow = () => {
+    setShowMealNutritionFlow(false);
+  };
+
+  const handleCloseBarcodeFlow = () => {
+    setShowBarcodeFlow(false);
+  };
+
+  const handleCloseSmartPantryScan = () => {
+    setShowSmartPantryScan(false);
+  };
+
+  const handleItemAdded = (item: any) => {
+    console.log('Item added to pantry:', item);
+    // TODO: Add to pantry state
+  };
+
+  if (!visible && !showCookWhatIHaveFlow && !showShuffleMealFlow && !showMealNutritionFlow && !showBarcodeFlow && !showSmartPantryScan) return null;
 
   return (
     <View style={styles.container} pointerEvents="box-none">
@@ -145,8 +188,8 @@ export const ScanBottomSheet: React.FC<ScanBottomSheetProps> = ({ visible, onClo
         
         <View style={styles.bottomSheetHeader}>
           <View style={styles.bottomSheetTitleContainer}>
-            <Text style={styles.bottomSheetTitle}>What do you want to scan?</Text>
-            <Text style={styles.bottomSheetSubtitle}>Choose what you want to scan below</Text>
+            <Text style={styles.bottomSheetTitle}>What would you like to do?</Text>
+            <Text style={styles.bottomSheetSubtitle}>Choose an action to get started</Text>
           </View>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <NourishrIcon name="CloseCircle" size={28} color={colors.gray60} />
@@ -172,7 +215,7 @@ export const ScanBottomSheet: React.FC<ScanBottomSheetProps> = ({ visible, onClo
                 <Text style={styles.modeTitle}>{mode.title}</Text>
                 <Text style={styles.modeDescription}>{mode.description}</Text>
               </View>
-              <NourishrIcon name="ChevronRight" size={20} color={colors.gray60} />
+              <NourishrIcon name="ArrowRight" size={20} color={colors.gray60} />
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -183,6 +226,35 @@ export const ScanBottomSheet: React.FC<ScanBottomSheetProps> = ({ visible, onClo
         visible={showCookWhatIHaveFlow}
         onClose={handleCloseCookWhatIHaveFlow}
       />
+
+      {/* Shuffle Meal Flow */}
+      <ShuffleMealBottomSheet
+        visible={showShuffleMealFlow}
+        onClose={handleCloseShuffleMealFlow}
+      />
+
+      {/* Meal Nutrition Flow */}
+      <MealNutritionFlow
+        visible={showMealNutritionFlow}
+        onClose={handleCloseMealNutritionFlow}
+      />
+
+      {/* Barcode Flow */}
+      {showBarcodeFlow && (
+        <BarcodeFlow
+          imageUri="https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=400"
+          barcode="722252100016"
+          onClose={handleCloseBarcodeFlow}
+        />
+      )}
+
+      {/* Smart Pantry Scan */}
+      {showSmartPantryScan && (
+        <SmartPantryScan
+          onClose={handleCloseSmartPantryScan}
+          onItemAdded={handleItemAdded}
+        />
+      )}
     </View>
   );
 };
@@ -195,75 +267,6 @@ const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  loadingText: {
-    ...typography.body,
-    color: colors.white,
-    textAlign: 'center',
-  },
-  permissionContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.lg,
-    backgroundColor: colors.white,
-  },
-  permissionTitle: {
-    ...typography.headingM,
-    color: colors.black,
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
-    textAlign: 'center',
-  },
-  permissionDescription: {
-    ...typography.body,
-    color: colors.gray60,
-    textAlign: 'center',
-    marginBottom: spacing.xl,
-    paddingHorizontal: spacing.lg,
-  },
-  permissionButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderRadius: radius.lg,
-  },
-  permissionButtonText: {
-    ...typography.bodyMedium,
-    color: colors.white,
-    fontWeight: '600',
-  },
-  backgroundOverlay: {
-    flex: 1,
-    backgroundColor: colors.gray20,
-  },
-  topBar: {
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  topBarTitle: {
-    ...typography.headingM,
-    color: colors.white,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  topBarSubtitle: {
-    ...typography.caption,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  scanGuide: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scanFrame: {
-    width: 280,
-    height: 280,
-    borderWidth: 3,
-    borderColor: colors.primary,
-    borderRadius: radius.lg,
-    backgroundColor: 'transparent',
   },
   bottomSheet: {
     position: 'absolute',

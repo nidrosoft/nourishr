@@ -1,0 +1,675 @@
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Dimensions,
+  Animated,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, typography, spacing, radius } from '../../../../theme';
+import { slideUpBottomSheet, slideDownBottomSheet } from '../../../../theme/animations';
+import { NourishrIcon } from '../../../../components';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+type Mood =
+  | 'lazy'
+  | 'healthy'
+  | 'quick'
+  | 'comfort'
+  | 'fruity'
+  | 'protein'
+  | 'light'
+  | 'surprise';
+
+interface ShuffleMealBottomSheetProps {
+  visible: boolean;
+  onClose: () => void;
+}
+
+const MEAL_TYPES: { id: MealType; label: string; emoji: string }[] = [
+  { id: 'breakfast', label: 'Breakfast', emoji: '🌅' },
+  { id: 'lunch', label: 'Lunch', emoji: '☀️' },
+  { id: 'dinner', label: 'Dinner', emoji: '🌙' },
+  { id: 'snack', label: 'Snack', emoji: '🍿' },
+];
+
+const MOODS: { id: Mood; label: string; emoji: string }[] = [
+  { id: 'lazy', label: 'Hungry but lazy', emoji: '😴' },
+  { id: 'healthy', label: 'I want something healthy', emoji: '🥦' },
+  { id: 'quick', label: 'I want something quick', emoji: '⚡' },
+  { id: 'comfort', label: 'Craving comfort food', emoji: '🍲' },
+  { id: 'fruity', label: 'Something fruity', emoji: '🍉' },
+  { id: 'protein', label: 'High-protein only', emoji: '💪' },
+  { id: 'light', label: 'I want something light', emoji: '✨' },
+  { id: 'surprise', label: 'Surprise me', emoji: '🤯' },
+];
+
+const LOADING_MESSAGES = [
+  "Checking what your stomach wants 👀",
+  "Asking the food gods for ideas 🔮",
+  "Mixing delicious options…",
+  "Cooking up suggestions…",
+  "Hang tight… I'm cooking ideas 🔥",
+  "Scanning the universe for deliciousness 🌎",
+  "Your taste buds are about to thank you 👅",
+  "Finding meals that won't disappoint 💅",
+];
+
+type FlowState = 'options' | 'shuffling' | 'results';
+
+export const ShuffleMealBottomSheet: React.FC<ShuffleMealBottomSheetProps> = ({
+  visible,
+  onClose,
+}) => {
+  const insets = useSafeAreaInsets();
+  const [flowState, setFlowState] = useState<FlowState>('options');
+  const [selectedMealTypes, setSelectedMealTypes] = useState<MealType[]>([]);
+  const [selectedMood, setSelectedMood] = useState<Mood | null>(null);
+  const [loadingMessage, setLoadingMessage] = useState(LOADING_MESSAGES[0]);
+  const [shuffledMeals, setShuffledMeals] = useState<any[]>([]);
+
+  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const heightAnim = useRef(new Animated.Value(0.7)).current;
+
+  useEffect(() => {
+    if (visible) {
+      slideAnim.setValue(SCREEN_HEIGHT);
+      slideUpBottomSheet(slideAnim, 0).start();
+    } else {
+      slideDownBottomSheet(slideAnim, SCREEN_HEIGHT).start();
+      // Reset state when closed
+      setTimeout(() => {
+        setFlowState('options');
+        setSelectedMealTypes([]);
+        setSelectedMood(null);
+      }, 300);
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    if (flowState === 'shuffling') {
+      // Rotate loading messages
+      const interval = setInterval(() => {
+        setLoadingMessage(
+          LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)]
+        );
+      }, 1500);
+
+      // Simulate API call
+      setTimeout(() => {
+        // Mock meal data
+        const mockMeals = [
+          {
+            id: '1',
+            name: 'Greek Yogurt Parfait',
+            description: 'the clean cute breakfast you needed',
+            tags: ['10 min', 'High protein', 'Uses what you have', 'Low calories'],
+            calories: 280,
+            time: '10 min',
+          },
+          {
+            id: '2',
+            name: 'Avocado Toast Supreme',
+            description: 'because basic can still be delicious 🥑',
+            tags: ['5 min', 'Healthy fats', 'Quick', 'Vegetarian'],
+            calories: 320,
+            time: '5 min',
+          },
+          {
+            id: '3',
+            name: 'Berry Smoothie Bowl',
+            description: 'Instagram-worthy and actually tasty 📸',
+            tags: ['8 min', 'Antioxidants', 'Refreshing', 'Vegan'],
+            calories: 250,
+            time: '8 min',
+          },
+        ];
+        setShuffledMeals(mockMeals);
+        setFlowState('results');
+        clearInterval(interval);
+      }, 3000);
+
+      return () => clearInterval(interval);
+    }
+  }, [flowState]);
+
+  const toggleMealType = (type: MealType) => {
+    setSelectedMealTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
+  };
+
+  const selectMood = (mood: Mood) => {
+    setSelectedMood(mood === selectedMood ? null : mood);
+  };
+
+  const handleShuffle = () => {
+    // If no meal type selected, default based on time
+    if (selectedMealTypes.length === 0) {
+      const hour = new Date().getHours();
+      let defaultMeal: MealType;
+      if (hour >= 5 && hour < 11) defaultMeal = 'breakfast';
+      else if (hour >= 11 && hour < 16) defaultMeal = 'lunch';
+      else if (hour >= 16 && hour < 22) defaultMeal = 'dinner';
+      else defaultMeal = 'snack';
+      setSelectedMealTypes([defaultMeal]);
+    }
+
+    // Expand height and start shuffling
+    Animated.timing(heightAnim, {
+      toValue: 0.85,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+    setFlowState('shuffling');
+  };
+
+  const handleRollAgain = () => {
+    setFlowState('shuffling');
+  };
+
+  const handleMealTap = (meal: any) => {
+    // TODO: Navigate to meal detail view
+    console.log('Open meal detail:', meal);
+  };
+
+  const getBottomSheetHeight = () => {
+    if (flowState === 'options') return SCREEN_HEIGHT * 0.7;
+    if (flowState === 'shuffling') return SCREEN_HEIGHT * 0.85;
+    return SCREEN_HEIGHT * 0.85;
+  };
+
+  if (!visible) return null;
+
+  return (
+    <View style={styles.container} pointerEvents="box-none">
+      {/* Dark Overlay */}
+      <TouchableOpacity
+        style={styles.overlay}
+        activeOpacity={1}
+        onPress={onClose}
+      />
+
+      {/* Bottom Sheet */}
+      <Animated.View
+        style={[
+          styles.bottomSheet,
+          {
+            height: getBottomSheetHeight(),
+            paddingBottom: insets.bottom + spacing.lg,
+            transform: [{ translateY: slideAnim }],
+          },
+        ]}
+      >
+        {/* Header */}
+        <View style={styles.headerContainer}>
+          <Text style={styles.headerTitle}>
+            {flowState === 'options' && "Let's find something delicious 😌"}
+            {flowState === 'results' && "Here's what I found for you 😋"}
+          </Text>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <NourishrIcon name="CloseCircle" size={24} color={colors.gray60} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Content */}
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          {flowState === 'options' && (
+            <OptionsPanel
+              selectedMealTypes={selectedMealTypes}
+              selectedMood={selectedMood}
+              onToggleMealType={toggleMealType}
+              onSelectMood={selectMood}
+            />
+          )}
+
+          {flowState === 'shuffling' && (
+            <ShufflingPanel loadingMessage={loadingMessage} />
+          )}
+
+          {flowState === 'results' && (
+            <ResultsPanel
+              meals={shuffledMeals}
+              onMealTap={handleMealTap}
+            />
+          )}
+        </ScrollView>
+
+        {/* Footer */}
+        {flowState === 'options' && (
+          <View style={styles.footer}>
+            <TouchableOpacity
+              style={[
+                styles.shuffleButton,
+                selectedMealTypes.length === 0 && styles.shuffleButtonDisabled,
+              ]}
+              onPress={handleShuffle}
+              disabled={selectedMealTypes.length === 0}
+            >
+              <Text style={styles.shuffleButtonText}>Shuffle my meal 🎰</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {flowState === 'results' && (
+          <View style={styles.footer}>
+            <TouchableOpacity
+              style={styles.rollAgainButton}
+              onPress={handleRollAgain}
+            >
+              <Text style={styles.rollAgainButtonText}>Roll again 🔄</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </Animated.View>
+    </View>
+  );
+};
+
+// OPTIONS PANEL COMPONENT
+const OptionsPanel: React.FC<{
+  selectedMealTypes: MealType[];
+  selectedMood: Mood | null;
+  onToggleMealType: (type: MealType) => void;
+  onSelectMood: (mood: Mood) => void;
+}> = ({ selectedMealTypes, selectedMood, onToggleMealType, onSelectMood }) => {
+  return (
+    <>
+      {/* Subheader */}
+      <Text style={styles.headerSubtext}>
+        Tell me the vibe + the meal, and I'll do the magic.
+      </Text>
+
+      {/* Meal Type Selector */}
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>What's this meal for?</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.mealTypeScroll}
+          contentContainerStyle={styles.mealTypeScrollContent}
+        >
+          {MEAL_TYPES.map((type) => (
+            <TouchableOpacity
+              key={type.id}
+              style={[
+                styles.mealTypeButton,
+                selectedMealTypes.includes(type.id) && styles.mealTypeButtonActive,
+              ]}
+              onPress={() => onToggleMealType(type.id)}
+            >
+              <Text style={styles.mealTypeEmoji}>{type.emoji}</Text>
+              <Text
+                style={[
+                  styles.mealTypeLabel,
+                  selectedMealTypes.includes(type.id) && styles.mealTypeLabelActive,
+                ]}
+              >
+                {type.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        <Text style={styles.microcopy}>
+          Pick one or mix a couple — totally up to you.
+        </Text>
+      </View>
+
+      {/* Mood Picker */}
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>What's the vibe today?</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.moodScroll}
+        >
+          {MOODS.map((mood) => (
+            <TouchableOpacity
+              key={mood.id}
+              style={[
+                styles.moodPill,
+                selectedMood === mood.id && styles.moodPillActive,
+              ]}
+              onPress={() => onSelectMood(mood.id)}
+            >
+              <Text style={styles.moodEmoji}>{mood.emoji}</Text>
+              <Text
+                style={[
+                  styles.moodLabel,
+                  selectedMood === mood.id && styles.moodLabelActive,
+                ]}
+              >
+                {mood.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+const ResultsPanel: React.FC<{
+  meals: any[];
+  onMealTap: (mealId: string) => void;
+  onRollAgain: () => void;
+  onClose: () => void;
+}> = ({ meals, onMealTap, onRollAgain, onClose }) => {
+  return (
+    <>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Here's what I found for you 😋</Text>
+        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+          <NourishrIcon name="CloseCircle" size={24} color={colors.gray60} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Content */}
+      <View style={styles.content}>
+        {/* Subheader */}
+        <Text style={styles.headerSubtext}>
+          Tap one to explore or roll again.
+        </Text>
+
+        {/* Meal Cards */}
+        <View style={styles.mealsContainer}>
+          {meals.map((meal) => (
+            <TouchableOpacity
+              key={meal.id}
+              style={styles.mealCard}
+              onPress={() => onMealTap(meal.id)}
+            >
+              <View style={styles.mealCardHeader}>
+                <View style={styles.mealCardInfo}>
+                  <Text style={styles.mealName}>{meal.name}</Text>
+                  <Text style={styles.mealDescription}>{meal.description}</Text>
+                </View>
+                <NourishrIcon name="ArrowRight2" size={24} color={colors.primary} />
+              </View>
+              <View style={styles.mealTags}>
+                {meal.tags.map((tag: string, index: number) => (
+                  <View key={index} style={styles.mealTag}>
+                    <Text style={styles.mealTagText}>{tag}</Text>
+                  </View>
+                ))}
+                <NourishrIcon name="Heart" size={20} color={colors.gray40} />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Footer */}
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.rollAgainButton} onPress={onRollAgain}>
+          <Text style={styles.rollAgainButtonText}>Roll again 🔄</Text>
+        </TouchableOpacity>
+      </View>
+    </>
+  );
+};
+const styles = StyleSheet.create({
+  container: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1000,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  bottomSheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.white,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 20,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    backgroundColor: colors.gray30,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  header: {
+    marginBottom: spacing.xl,
+  },
+  headerTitle: {
+    ...typography.h2,
+    color: colors.gray80,
+    marginBottom: spacing.xs,
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  headerSubtext: {
+    ...typography.body,
+    color: colors.gray60,
+    fontSize: 16,
+  },
+  section: {
+    marginBottom: spacing.lg,
+  },
+  sectionLabel: {
+    ...typography.h4,
+    color: colors.black,
+    marginBottom: spacing.md,
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  mealTypeScroll: {
+    marginBottom: spacing.sm,
+  },
+  mealTypeScrollContent: {
+    gap: spacing.sm,
+    paddingBottom: spacing.sm,
+  },
+  mealTypeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.white,
+    borderRadius: radius.full,
+    borderWidth: 2,
+    borderColor: colors.gray30,
+  },
+  mealTypeButtonActive: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
+    borderWidth: 2,
+  },
+  mealTypeEmoji: {
+    fontSize: 18,
+    marginRight: spacing.xs,
+  },
+  mealTypeLabel: {
+    ...typography.bodyMedium,
+    color: colors.gray70,
+    fontSize: 15,
+  },
+  mealTypeLabelActive: {
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  microcopy: {
+    ...typography.caption,
+    color: colors.gray60,
+    fontStyle: 'italic',
+    fontSize: 14,
+  },
+  moodScroll: {
+    gap: spacing.sm,
+    paddingBottom: spacing.sm,
+  },
+  moodPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.white,
+    borderRadius: radius.full,
+    borderWidth: 2,
+    borderColor: colors.gray30,
+  },
+  moodPillActive: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
+    borderWidth: 2,
+  },
+  moodEmoji: {
+    fontSize: 16,
+    marginRight: spacing.xs,
+  },
+  moodLabel: {
+    ...typography.body,
+    color: colors.gray70,
+    fontSize: 15,
+  },
+  moodLabelActive: {
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  shuffleButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md + 2,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.lg,
+  },
+  shuffleButtonText: {
+    ...typography.h4,
+    color: colors.white,
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  shufflingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing.xxl * 2,
+  },
+  slotMachine: {
+    width: 120,
+    height: 120,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  slotEmoji: {
+    fontSize: 80,
+  },
+  loadingMessage: {
+    ...typography.h4,
+    color: colors.gray70,
+    textAlign: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  mealsContainer: {
+    gap: spacing.md,
+    marginBottom: spacing.xl,
+  },
+  mealCard: {
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.gray20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  mealCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.sm,
+  },
+  mealCardInfo: {
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  mealName: {
+    ...typography.h4,
+    color: colors.black,
+    marginBottom: spacing.xs / 2,
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  mealDescription: {
+    ...typography.body,
+    color: colors.gray60,
+    fontSize: 15,
+  },
+  mealTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  mealTag: {
+    backgroundColor: colors.gray10,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs / 2,
+    borderRadius: radius.sm,
+  },
+  mealTagText: {
+    ...typography.caption,
+    color: colors.gray70,
+  },
+  resultActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  rollAgainButton: {
+    flex: 1,
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md + 2,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rollAgainButtonText: {
+    ...typography.bodyMedium,
+    color: colors.white,
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: colors.white,
+    paddingVertical: spacing.md + 2,
+    borderRadius: radius.full,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonText: {
+    ...typography.bodyMedium,
+    color: colors.primary,
+    fontWeight: '600',
+    fontSize: 16,
+  },
+});
