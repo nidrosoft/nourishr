@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, radius } from '../../../theme';
 import { NourishrIcon } from '../../../components';
 import { AddItemBottomSheet } from './components/AddItemBottomSheet';
-import { Toast } from './settings/Toast';
+import { Toast } from '../../../components/organisms/Toast';
+import { useToast } from '../../../hooks/useToast';
 import { CategoryView } from './components/pantry/CategoryView';
 import { ExpiringSoonSection } from './components/pantry/ExpiringSoonSection';
 
@@ -66,28 +68,28 @@ export const PantryScreen: React.FC<PantryScreenProps> = ({ onClose }) => {
   const insets = useSafeAreaInsets();
   const [showAddItem, setShowAddItem] = useState(false);
   const [batches, setBatches] = useState(mockPantryBatches);
-  const slideAnim = useRef(new Animated.Value(1000)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
+  const translateX = useSharedValue(1000);
+  const { toast, showSuccess, showError, hideToast } = useToast();
   const [activeFilter, setActiveFilter] = useState('all');
 
   useEffect(() => {
-    // Slide in from right with fade - faster for smoother feel
-    Animated.parallel([
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 80,
-        friction: 10,
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    // Simple slide in from right - no fade, no blank screen
+    translateX.value = withTiming(0, {
+      duration: 300,
+    });
   }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  const handleClose = () => {
+    translateX.value = withTiming(1000, {
+      duration: 250,
+    }, () => {
+      runOnJS(onClose)();
+    });
+  };
 
   const handleDeleteItem = (batchDate: string, itemId: string) => {
     setBatches((prev) =>
@@ -97,6 +99,7 @@ export const PantryScreen: React.FC<PantryScreenProps> = ({ onClose }) => {
           : batch
       ).filter((batch) => batch.items.length > 0)
     );
+    showError('Item removed from pantry');
   };
 
   const handleAddItemComplete = (data: any) => {
@@ -127,9 +130,7 @@ export const PantryScreen: React.FC<PantryScreenProps> = ({ onClose }) => {
     }
 
     setShowAddItem(false);
-    // Show toast notification
-    setToastMessage('Item added to pantry successfully!');
-    setShowToast(true);
+    showSuccess('Item added to pantry!');
   };
 
   const getTotalItems = () => {
@@ -172,10 +173,7 @@ export const PantryScreen: React.FC<PantryScreenProps> = ({ onClose }) => {
       <Animated.View 
         style={[
           styles.container,
-          {
-            transform: [{ translateX: slideAnim }],
-            opacity: fadeAnim,
-          },
+          animatedStyle,
         ]}
       >
       {/* Header with Gradient */}
@@ -185,7 +183,7 @@ export const PantryScreen: React.FC<PantryScreenProps> = ({ onClose }) => {
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: insets.top + spacing.md }]}
       >
-        <TouchableOpacity style={styles.backButton} onPress={onClose}>
+        <TouchableOpacity style={styles.backButton} onPress={handleClose}>
           <NourishrIcon name="ArrowLeft" size={24} color={colors.white} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
@@ -352,9 +350,10 @@ export const PantryScreen: React.FC<PantryScreenProps> = ({ onClose }) => {
       
       {/* Toast Notification */}
       <Toast
-        message={toastMessage}
-        visible={showToast}
-        onHide={() => setShowToast(false)}
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={hideToast}
       />
       </Animated.View>
     </View>

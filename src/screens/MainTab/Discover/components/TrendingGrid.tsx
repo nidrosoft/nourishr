@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { colors, typography, spacing, radius } from '../../../../theme';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from 'react-native';
+import { colors, typography, spacing, radius, shadows, iosRadius } from '../../../../theme';
 import { NourishrIcon } from '../../../../components';
+import { HapticFeedback } from '../../../../utils/haptics';
+import { isSmallDevice } from '../../../../utils/responsive';
 
 interface TrendingItem {
   id: string;
@@ -23,8 +25,10 @@ export const TrendingGrid: React.FC<TrendingGridProps> = ({ items, onItemPress }
       const newSet = new Set(prev);
       if (newSet.has(id)) {
         newSet.delete(id);
+        HapticFeedback.light();
       } else {
         newSet.add(id);
+        HapticFeedback.success();
       }
       return newSet;
     });
@@ -36,7 +40,10 @@ export const TrendingGrid: React.FC<TrendingGridProps> = ({ items, onItemPress }
         <TouchableOpacity
           key={item.id}
           style={[styles.card, index % 2 === 0 ? styles.cardLeft : styles.cardRight]}
-          onPress={() => onItemPress(item.id)}
+          onPress={() => {
+            HapticFeedback.light();
+            onItemPress(item.id);
+          }}
           activeOpacity={0.9}
         >
           <Image source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
@@ -75,16 +82,12 @@ const styles = StyleSheet.create({
     marginHorizontal: -spacing.xs,
   },
   card: {
-    width: '48%',
-    backgroundColor: colors.white,
-    borderRadius: radius.lg,
-    overflow: 'hidden',
+    flex: 1,
     marginBottom: spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    borderRadius: Platform.OS === 'ios' ? iosRadius.card : radius.lg,
+    overflow: 'hidden',
+    backgroundColor: colors.white,
+    ...shadows.md,
   },
   cardLeft: {
     marginRight: spacing.xs,
@@ -94,16 +97,16 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 140,
+    height: isSmallDevice ? 120 : 140,
     backgroundColor: colors.gray10,
   },
   heartButton: {
     position: 'absolute',
     top: spacing.sm,
     right: spacing.sm,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: isSmallDevice ? 28 : 32,
+    height: isSmallDevice ? 28 : 32,
+    borderRadius: isSmallDevice ? 14 : 16,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -114,7 +117,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.bodyMedium,
-    fontSize: 14,
+    fontSize: isSmallDevice ? 13 : 14,
     fontWeight: '600',
     color: colors.black,
     marginBottom: spacing.xs,
@@ -125,7 +128,7 @@ const styles = StyleSheet.create({
   },
   tag: {
     ...typography.body,
-    fontSize: 11,
+    fontSize: isSmallDevice ? 10 : 11,
     color: colors.primary,
     backgroundColor: '#FFF4E6',
     paddingHorizontal: spacing.xs,

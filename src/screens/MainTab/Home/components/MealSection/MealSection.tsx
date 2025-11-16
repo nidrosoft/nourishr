@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, typography, spacing, radius } from '../../../../../theme';
+import { colors, typography, spacing, radius, shadows, iosRadius } from '../../../../../theme';
 import { Badge } from '../../../../../components';
+import { HapticFeedback } from '../../../../../utils/haptics';
+import { isSmallDevice } from '../../../../../utils/responsive';
 
 interface Meal {
   id: number;
@@ -33,7 +35,10 @@ export const MealSection: React.FC<MealSectionProps> = ({
       {/* Section Header */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>{title}</Text>
-        <TouchableOpacity onPress={onViewAllPress}>
+        <TouchableOpacity onPress={() => {
+          HapticFeedback.light();
+          onViewAllPress();
+        }}>
           <Text style={styles.seeAllLink}>See All</Text>
         </TouchableOpacity>
       </View>
@@ -49,7 +54,10 @@ export const MealSection: React.FC<MealSectionProps> = ({
             key={meal.id}
             style={styles.mealCard}
             activeOpacity={0.9}
-            onPress={() => onMealPress(meal.id)}
+            onPress={() => {
+              HapticFeedback.light();
+              onMealPress(meal.id);
+            }}
           >
             {/* Full Background Image */}
             <Image
@@ -106,13 +114,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...typography.h3,
-    fontSize: 20,
+    fontSize: isSmallDevice ? 18 : 20,
     fontWeight: '700',
     color: colors.gray80,
   },
   seeAllLink: {
     ...typography.body,
-    fontSize: 14,
+    fontSize: isSmallDevice ? 13 : 14,
     fontWeight: '600',
     color: colors.primary,
   },
@@ -121,16 +129,12 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   mealCard: {
-    width: 240,
-    height: 320,
-    borderRadius: 20,
+    width: isSmallDevice ? 220 : 240,
+    height: isSmallDevice ? 300 : 320,
+    borderRadius: Platform.OS === 'ios' ? iosRadius.card : radius.lg,
     overflow: 'hidden',
     backgroundColor: colors.gray20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    ...shadows.md,
   },
   mealImage: {
     position: 'absolute',
@@ -161,14 +165,14 @@ const styles = StyleSheet.create({
   },
   mealCardTitle: {
     ...typography.bodyLarge,
-    fontSize: 16,
+    fontSize: isSmallDevice ? 15 : 16,
     fontWeight: '700',
     color: colors.white,
     marginBottom: 4,
   },
   mealCardSubtitle: {
     ...typography.caption,
-    fontSize: 13,
+    fontSize: isSmallDevice ? 12 : 13,
     color: 'rgba(255, 255, 255, 0.9)',
     marginBottom: spacing.sm,
   },
@@ -183,18 +187,18 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   ratingEmoji: {
-    fontSize: 16,
+    fontSize: isSmallDevice ? 14 : 16,
   },
   ratingText: {
     ...typography.caption,
-    fontSize: 14,
+    fontSize: isSmallDevice ? 13 : 14,
     fontWeight: '600',
     color: colors.white,
     marginLeft: 4,
   },
   mealCardPrice: {
     ...typography.bodyMedium,
-    fontSize: 16,
+    fontSize: isSmallDevice ? 15 : 16,
     fontWeight: '700',
     color: colors.white,
   },

@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, radius } from '../../../theme';
 import { NourishrIcon } from '../../../components';
+import { Toast } from '../../../components/organisms/Toast';
+import { useToast } from '../../../hooks/useToast';
 
 interface FavoriteMeal {
   id: string;
@@ -128,44 +131,31 @@ export const FavoritesScreenFull: React.FC<FavoritesScreenFullProps> = ({ onClos
   const [favorites, setFavorites] = useState(mockFavorites);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [isEmpty, setIsEmpty] = useState(false);
-  const slideAnim = useRef(new Animated.Value(1000)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const translateX = useSharedValue(1000);
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 80,
-        friction: 10,
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    // Simple slide in from right - no fade, no blank screen
+    translateX.value = withTiming(0, {
+      duration: 300,
+    });
   }, []);
 
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
   const handleClose = () => {
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: 1000,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      onClose();
+    translateX.value = withTiming(1000, {
+      duration: 250,
+    }, () => {
+      runOnJS(onClose)();
     });
   };
 
   const handleRemoveFavorite = (id: string) => {
     setFavorites(favorites.filter(meal => meal.id !== id));
+    showError('Removed from favorites');
   };
 
   const handleViewRecipe = (id: string) => {
@@ -211,10 +201,7 @@ export const FavoritesScreenFull: React.FC<FavoritesScreenFullProps> = ({ onClos
       <Animated.View
         style={[
           styles.container,
-          {
-            transform: [{ translateX: slideAnim }],
-            opacity: fadeAnim,
-          },
+          animatedStyle,
         ]}
       >
         {/* Header */}
@@ -375,6 +362,14 @@ export const FavoritesScreenFull: React.FC<FavoritesScreenFullProps> = ({ onClos
           )}
         </ScrollView>
       </Animated.View>
+      
+      {/* Toast Notification */}
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={hideToast}
+      />
     </View>
   );
 };

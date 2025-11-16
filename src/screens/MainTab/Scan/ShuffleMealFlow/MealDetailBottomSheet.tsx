@@ -9,6 +9,7 @@ import {
   Linking,
   Alert,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,8 +20,8 @@ import Animated, {
   withSpring,
   runOnJS,
 } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
-import { colors, typography, spacing, radius } from '../../../../theme';
+import { HapticFeedback } from '../../../../utils/haptics';
+import { colors, typography, spacing, radius, shadows, iosRadius } from '../../../../theme';
 import { NourishrIcon } from '../../../../components';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -86,7 +87,7 @@ export const MealDetailBottomSheet: React.FC<MealDetailBottomSheetProps> = ({
   }));
 
   const handleOrderNow = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await HapticFeedback.medium();
     
     // Show delivery app options
     Alert.alert(
@@ -142,9 +143,9 @@ export const MealDetailBottomSheet: React.FC<MealDetailBottomSheetProps> = ({
 
   const handleSave = async () => {
     if (isSaved) {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await HapticFeedback.light();
     } else {
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await HapticFeedback.success();
     }
     setIsSaved(!isSaved);
   };
@@ -329,14 +330,10 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: '#EAEAEA',
-    borderTopLeftRadius: 56,
-    borderTopRightRadius: 56,
+    borderTopLeftRadius: Platform.OS === 'ios' ? iosRadius.sheet : 56,
+    borderTopRightRadius: Platform.OS === 'ios' ? iosRadius.sheet : 56,
     maxHeight: '92%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 10,
+    ...shadows.xl,
   },
   scrollContent: {
     paddingTop: 0,
@@ -344,10 +341,10 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     backgroundColor: colors.white,
-    borderTopLeftRadius: 56,
-    borderTopRightRadius: 56,
-    borderBottomLeftRadius: 56,
-    borderBottomRightRadius: 56,
+    borderTopLeftRadius: Platform.OS === 'ios' ? iosRadius.sheet : 56,
+    borderTopRightRadius: Platform.OS === 'ios' ? iosRadius.sheet : 56,
+    borderBottomLeftRadius: Platform.OS === 'ios' ? iosRadius.card : 56,
+    borderBottomRightRadius: Platform.OS === 'ios' ? iosRadius.card : 56,
     padding: spacing.sm,
     marginBottom: spacing.md,
   },
@@ -419,18 +416,14 @@ const styles = StyleSheet.create({
   },
   contentCard: {
     backgroundColor: colors.white,
-    borderTopLeftRadius: 56,
-    borderTopRightRadius: 56,
+    borderTopLeftRadius: Platform.OS === 'ios' ? iosRadius.card : 56,
+    borderTopRightRadius: Platform.OS === 'ios' ? iosRadius.card : 56,
     padding: spacing.lg,
     marginHorizontal: 0,
     marginTop: -spacing.xs,
     marginBottom: 0,
     paddingBottom: spacing.xl * 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 5,
+    ...shadows.md,
   },
   categoryText: {
     ...typography.caption,

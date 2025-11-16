@@ -15,6 +15,7 @@ import { colors, typography, spacing, radius } from '../../../theme';
 import { NourishrIcon } from '../../../components';
 import { useApp } from '../../../context/AppContext';
 import { MainTabParamList } from '../../../navigation/types';
+import { isSmallDevice } from '../../../utils/responsive';
 
 type ProfileScreenProps = {
   navigation: BottomTabNavigationProp<MainTabParamList, 'Profile'>;
@@ -194,8 +195,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   settingsButton: {
-    width: 40,
-    height: 40,
+    width: isSmallDevice ? 36 : 40,
+    height: isSmallDevice ? 36 : 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -204,8 +205,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
   },
   avatar: {
-    width: 80,
-    height: 80,
+    width: isSmallDevice ? 70 : 80,
+    height: isSmallDevice ? 70 : 80,
     borderRadius: radius.full,
     backgroundColor: colors.primary,
     justifyContent: 'center',
@@ -234,7 +235,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.sm,
     textTransform: 'uppercase',
-    fontSize: 12,
+    fontSize: isSmallDevice ? 11 : 12,
     fontWeight: '600',
     letterSpacing: 0.5,
   },
@@ -252,10 +253,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
+    paddingVertical: isSmallDevice ? spacing.md : spacing.lg,
   },
   iconWrapper: {
-    marginRight: 16,
+    marginRight: isSmallDevice ? 12 : 16,
   },
   menuItemText: {
     ...typography.body,

@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NourishrIcon } from '../../atoms/Icon';
 import { colors, typography, spacing, radius } from '../../../theme';
-import { slideDownToast, slideUpToast } from '../../../theme/animations';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -21,22 +20,26 @@ const getToastConfig = (type: ToastType) => {
       return {
         icon: 'TickCircle' as const,
         iconColor: '#10B981', // Green
+        containerColor: '#FFFFFF', // White container
       };
     case 'error':
       return {
         icon: 'CloseCircle' as const,
         iconColor: '#EF4444', // Red
+        containerColor: '#FFFFFF', // White container
       };
     case 'warning':
       return {
         icon: 'Warning2' as const,
         iconColor: '#F59E0B', // Orange
+        containerColor: '#FFFFFF', // White container
       };
     case 'info':
     default:
       return {
         icon: 'InfoCircle' as const,
         iconColor: '#3B82F6', // Blue
+        containerColor: '#FFFFFF', // White container
       };
   }
 };
@@ -55,11 +58,20 @@ export const Toast: React.FC<ToastProps> = ({
   useEffect(() => {
     if (visible) {
       // Slide down
-      slideDownToast(translateY).start();
+      Animated.spring(translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 80,
+        friction: 10,
+      }).start();
 
       // Auto hide after duration
       const timer = setTimeout(() => {
-        slideUpToast(translateY, -100).start(() => {
+        Animated.timing(translateY, {
+          toValue: -100,
+          duration: 250,
+          useNativeDriver: true,
+        }).start(() => {
           onHide?.();
         });
       }, duration);
@@ -67,7 +79,11 @@ export const Toast: React.FC<ToastProps> = ({
       return () => clearTimeout(timer);
     } else {
       // Slide up immediately
-      slideUpToast(translateY, -100).start();
+      Animated.timing(translateY, {
+        toValue: -100,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
     }
   }, [visible, translateY, duration, onHide]);
 
@@ -84,7 +100,9 @@ export const Toast: React.FC<ToastProps> = ({
       ]}
     >
       <View style={styles.toast}>
-        <NourishrIcon name={config.icon} size={24} color={config.iconColor} />
+        <View style={[styles.iconContainer, { backgroundColor: config.containerColor }]}>
+          <NourishrIcon name={config.icon} size={20} color={config.iconColor} />
+        </View>
         <Text style={styles.message}>{message}</Text>
       </View>
     </Animated.View>
@@ -111,10 +129,18 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   message: {
     ...typography.body,
     color: colors.white,
     marginLeft: spacing.md,
     flex: 1,
+    fontWeight: '500',
   },
 });

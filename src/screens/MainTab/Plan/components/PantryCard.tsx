@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { colors, typography, spacing, radius } from '../../../../theme';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { colors, typography, spacing, radius, shadows, iosRadius } from '../../../../theme';
 import { NourishrIcon } from '../../../../components';
+import { HapticFeedback } from '../../../../utils/haptics';
+import { isSmallDevice } from '../../../../utils/responsive';
 
 interface PantryItem {
   id: string;
@@ -57,14 +59,20 @@ export const PantryCard: React.FC<PantryCardProps> = ({
           </Text>
 
           <View style={styles.actions}>
-            <TouchableOpacity style={styles.primaryAction} onPress={onViewAll}>
+            <TouchableOpacity style={styles.primaryAction} onPress={() => {
+              HapticFeedback.light();
+              onViewAll();
+            }}>
               <Text style={styles.primaryActionText}>View All</Text>
               <NourishrIcon name="ArrowRight" size={16} color={colors.primary} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.secondaryActions}>
-            <TouchableOpacity style={styles.textButton} onPress={onAddItem}>
+            <TouchableOpacity style={styles.textButton} onPress={() => {
+              HapticFeedback.light();
+              onAddItem();
+            }}>
               <NourishrIcon name="Add" size={16} color={colors.gray70} />
               <Text style={styles.textButtonText}>Add item</Text>
             </TouchableOpacity>
@@ -86,7 +94,10 @@ export const PantryCard: React.FC<PantryCardProps> = ({
               <NourishrIcon name="Add" size={18} color={colors.white} />
               <Text style={styles.emptyButtonText}>Add item</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.emptyButtonOutline} onPress={onScanItem}>
+            <TouchableOpacity style={styles.emptyButtonOutline} onPress={() => {
+              HapticFeedback.light();
+              onScanItem();
+            }}>
               <NourishrIcon name="Scan" size={18} color={colors.primary} />
               <Text style={styles.emptyButtonOutlineText}>Scan item</Text>
             </TouchableOpacity>
@@ -100,15 +111,11 @@ export const PantryCard: React.FC<PantryCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.white,
-    borderRadius: radius.xl,
+    borderRadius: Platform.OS === 'ios' ? iosRadius.card : radius.lg,
     padding: spacing.lg,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
+    ...shadows.md,
   },
   header: {
     flexDirection: 'row',
@@ -119,7 +126,7 @@ const styles = StyleSheet.create({
   title: {
     ...typography.h2,
     color: colors.black,
-    fontSize: 20,
+    fontSize: isSmallDevice ? 18 : 20,
     fontWeight: '700',
   },
   expiringBadge: {
@@ -134,7 +141,7 @@ const styles = StyleSheet.create({
   expiringText: {
     ...typography.caption,
     color: '#E63946',
-    fontSize: 11,
+    fontSize: isSmallDevice ? 10 : 11,
     fontWeight: '600',
   },
   itemsContainer: {
@@ -154,13 +161,13 @@ const styles = StyleSheet.create({
   itemText: {
     ...typography.body,
     color: colors.gray70,
-    fontSize: 14,
+    fontSize: isSmallDevice ? 13 : 14,
     fontWeight: '500',
   },
   countText: {
     ...typography.caption,
     color: colors.gray60,
-    fontSize: 12,
+    fontSize: isSmallDevice ? 11 : 12,
     marginBottom: spacing.md,
   },
   actions: {
@@ -177,7 +184,7 @@ const styles = StyleSheet.create({
     ...typography.bodyMedium,
     color: colors.primary,
     fontWeight: '600',
-    fontSize: 15,
+    fontSize: isSmallDevice ? 14 : 15,
   },
   secondaryActions: {
     flexDirection: 'row',
@@ -195,7 +202,7 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.gray70,
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: isSmallDevice ? 13 : 14,
   },
   emptyState: {
     alignItems: 'center',
@@ -204,7 +211,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     ...typography.h3,
     color: colors.black,
-    fontSize: 18,
+    fontSize: isSmallDevice ? 16 : 18,
     fontWeight: '600',
     marginTop: spacing.md,
     marginBottom: spacing.xs,
@@ -212,7 +219,7 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     ...typography.body,
     color: colors.gray60,
-    fontSize: 14,
+    fontSize: isSmallDevice ? 13 : 14,
     textAlign: 'center',
     marginBottom: spacing.lg,
   },
@@ -233,7 +240,7 @@ const styles = StyleSheet.create({
     ...typography.bodyMedium,
     color: colors.white,
     fontWeight: '600',
-    fontSize: 15,
+    fontSize: isSmallDevice ? 14 : 15,
   },
   emptyButtonOutline: {
     flexDirection: 'row',
@@ -250,6 +257,6 @@ const styles = StyleSheet.create({
     ...typography.bodyMedium,
     color: colors.primary,
     fontWeight: '600',
-    fontSize: 15,
+    fontSize: isSmallDevice ? 14 : 15,
   },
 });

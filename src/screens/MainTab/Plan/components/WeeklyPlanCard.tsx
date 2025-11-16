@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { colors, typography, spacing, radius } from '../../../../theme';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { colors, typography, spacing, radius, shadows, iosRadius } from '../../../../theme';
+import { isSmallDevice } from '../../../../utils/responsive';
 import { NourishrIcon } from '../../../../components';
+import { HapticFeedback } from '../../../../utils/haptics';
 
 interface DayPlan {
   day: string;
@@ -28,7 +30,10 @@ export const WeeklyPlanCard: React.FC<WeeklyPlanCardProps> = ({
       <View style={styles.header}>
         <Text style={styles.title}>This Week</Text>
         {hasAnyMeals && (
-          <TouchableOpacity onPress={onViewFullWeek}>
+          <TouchableOpacity onPress={() => {
+            HapticFeedback.light();
+            onViewFullWeek();
+          }}>
             <Text style={styles.viewAllText}>View full week →</Text>
           </TouchableOpacity>
         )}
@@ -40,7 +45,12 @@ export const WeeklyPlanCard: React.FC<WeeklyPlanCardProps> = ({
             <TouchableOpacity
               key={index}
               style={styles.dayRow}
-              onPress={() => !day.meal && onAddMeal(day.day)}
+              onPress={() => {
+                if (!day.meal) {
+                  HapticFeedback.light();
+                  onAddMeal(day.day);
+                }
+              }}
               activeOpacity={0.7}
             >
               <View style={styles.dayInfo}>
@@ -82,15 +92,11 @@ export const WeeklyPlanCard: React.FC<WeeklyPlanCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.white,
-    borderRadius: radius.xl,
+    borderRadius: Platform.OS === 'ios' ? iosRadius.card : radius.lg,
     padding: spacing.lg,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
+    ...shadows.md,
   },
   header: {
     flexDirection: 'row',
@@ -101,14 +107,14 @@ const styles = StyleSheet.create({
   title: {
     ...typography.h2,
     color: colors.black,
-    fontSize: 20,
+    fontSize: isSmallDevice ? 18 : 20,
     fontWeight: '700',
   },
   viewAllText: {
     ...typography.body,
     color: colors.primary,
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: isSmallDevice ? 13 : 14,
   },
   daysContainer: {
     gap: spacing.xs,
@@ -132,7 +138,7 @@ const styles = StyleSheet.create({
     ...typography.bodyMedium,
     color: colors.gray70,
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: isSmallDevice ? 13 : 14,
     width: 40,
   },
   mealInfo: {
@@ -142,12 +148,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   mealEmoji: {
-    fontSize: 18,
+    fontSize: isSmallDevice ? 16 : 18,
   },
   mealName: {
     ...typography.body,
     color: colors.black,
-    fontSize: 15,
+    fontSize: isSmallDevice ? 14 : 15,
     fontWeight: '500',
     flex: 1,
   },
@@ -160,7 +166,7 @@ const styles = StyleSheet.create({
   emptyMealText: {
     ...typography.body,
     color: colors.gray50,
-    fontSize: 14,
+    fontSize: isSmallDevice ? 13 : 14,
   },
   emptyState: {
     alignItems: 'center',
@@ -169,7 +175,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     ...typography.h3,
     color: colors.black,
-    fontSize: 18,
+    fontSize: isSmallDevice ? 16 : 18,
     fontWeight: '600',
     marginTop: spacing.md,
     marginBottom: spacing.xs,
@@ -177,7 +183,7 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     ...typography.body,
     color: colors.gray60,
-    fontSize: 14,
+    fontSize: isSmallDevice ? 13 : 14,
     textAlign: 'center',
     marginBottom: spacing.lg,
   },
@@ -191,6 +197,6 @@ const styles = StyleSheet.create({
     ...typography.bodyMedium,
     color: colors.white,
     fontWeight: '600',
-    fontSize: 15,
+    fontSize: isSmallDevice ? 14 : 15,
   },
 });

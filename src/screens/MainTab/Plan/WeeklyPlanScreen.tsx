@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, radius } from '../../../theme';
 import { NourishrIcon } from '../../../components';
+import { Toast } from '../../../components/organisms/Toast';
+import { useToast } from '../../../hooks/useToast';
 import { DayMealCard } from './components/DayMealCard';
 
 interface Meal {
@@ -277,27 +280,31 @@ export const WeeklyPlanScreen: React.FC<WeeklyPlanScreenProps> = ({ onClose }) =
   const [isEmpty, setIsEmpty] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const slideAnim = useRef(new Animated.Value(1000)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const translateX = useSharedValue(1000);
+  const { toast, showSuccess, showError, hideToast } = useToast();
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 80,
-        friction: 10,
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    // Simple slide in from right - no fade, no blank screen
+    translateX.value = withTiming(0, {
+      duration: 300,
+    });
   }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  const handleClose = () => {
+    translateX.value = withTiming(1000, {
+      duration: 250,
+    }, () => {
+      runOnJS(onClose)();
+    });
+  };
 
   const handleRefresh = () => {
     console.log('Refresh weekly plan');
+    showSuccess('Plan refreshed!');
   };
 
   const handleSettings = () => {
@@ -310,11 +317,13 @@ export const WeeklyPlanScreen: React.FC<WeeklyPlanScreenProps> = ({ onClose }) =
 
   const handleReplaceMeal = (mealId: string) => {
     console.log('Replace meal:', mealId);
+    showSuccess('Meal replaced successfully!');
   };
 
   const handleGeneratePlan = () => {
     console.log('Generate weekly plan');
     setIsEmpty(false);
+    showSuccess('Weekly plan generated!');
   };
 
   if (isEmpty) {
@@ -323,10 +332,7 @@ export const WeeklyPlanScreen: React.FC<WeeklyPlanScreenProps> = ({ onClose }) =
         <Animated.View
           style={[
             styles.container,
-            {
-              transform: [{ translateX: slideAnim }],
-              opacity: fadeAnim,
-            },
+            animatedStyle,
           ]}
         >
           <LinearGradient
@@ -335,7 +341,7 @@ export const WeeklyPlanScreen: React.FC<WeeklyPlanScreenProps> = ({ onClose }) =
             end={{ x: 1, y: 1 }}
             style={[styles.header, { paddingTop: insets.top + spacing.md }]}
           >
-            <TouchableOpacity style={styles.backButton} onPress={onClose}>
+            <TouchableOpacity style={styles.backButton} onPress={handleClose}>
               <NourishrIcon name="ArrowLeft" size={24} color={colors.white} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>This Week</Text>
@@ -362,10 +368,7 @@ export const WeeklyPlanScreen: React.FC<WeeklyPlanScreenProps> = ({ onClose }) =
       <Animated.View
         style={[
           styles.container,
-          {
-            transform: [{ translateX: slideAnim }],
-            opacity: fadeAnim,
-          },
+          animatedStyle,
         ]}
       >
         <LinearGradient
@@ -374,7 +377,7 @@ export const WeeklyPlanScreen: React.FC<WeeklyPlanScreenProps> = ({ onClose }) =
           end={{ x: 1, y: 1 }}
           style={[styles.header, { paddingTop: insets.top + spacing.md }]}
         >
-          <TouchableOpacity style={styles.backButton} onPress={onClose}>
+          <TouchableOpacity style={styles.backButton} onPress={handleClose}>
             <NourishrIcon name="ArrowLeft" size={24} color={colors.white} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
@@ -538,6 +541,14 @@ export const WeeklyPlanScreen: React.FC<WeeklyPlanScreenProps> = ({ onClose }) =
           )}
         </ScrollView>
       </Animated.View>
+      
+      {/* Toast Notification */}
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={hideToast}
+      />
     </View>
   );
 };

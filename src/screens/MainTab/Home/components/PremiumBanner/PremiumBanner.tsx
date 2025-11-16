@@ -3,6 +3,63 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
 import { colors, typography, spacing, radius } from '../../../../../theme';
+import { isSmallDevice } from '../../../../../utils/responsive';
+
+const styles = StyleSheet.create({
+  premiumBannerContainer: {
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  premiumBanner: {
+    backgroundColor: colors.black,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+  },
+  premiumContent: {
+    flex: 1,
+    paddingRight: spacing.xs,
+  },
+  premiumTitle: {
+    ...typography.h2,
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: spacing.xs,
+  },
+  premiumSubtitle: {
+    ...typography.body,
+    fontSize: 13,
+    color: colors.gray60,
+    marginBottom: spacing.md,
+    lineHeight: 18,
+  },
+  premiumButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: radius.full,
+    alignSelf: 'flex-start',
+  },
+  premiumButtonText: {
+    ...typography.body,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.white,
+  },
+  premiumImageContainer: {
+    marginLeft: spacing.xs,
+    width: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumEmoji: {
+    fontSize: 40,
+  },
+});
 
 export const PremiumBanner: React.FC = () => {
   return (
@@ -36,55 +93,3 @@ export const PremiumBanner: React.FC = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  premiumBannerContainer: {
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  premiumBanner: {
-    backgroundColor: colors.black,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    overflow: 'hidden',
-  },
-  premiumContent: {
-    flex: 1,
-  },
-  premiumTitle: {
-    ...typography.h2,
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: spacing.xs,
-  },
-  premiumSubtitle: {
-    ...typography.body,
-    fontSize: 14,
-    color: colors.gray60,
-    marginBottom: spacing.md,
-    lineHeight: 20,
-  },
-  premiumButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.full,
-    alignSelf: 'flex-start',
-  },
-  premiumButtonText: {
-    ...typography.body,
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.white,
-  },
-  premiumImageContainer: {
-    marginLeft: spacing.md,
-  },
-  premiumEmoji: {
-    fontSize: 64,
-  },
-});

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, radius } from '../../../../theme';
 import { NourishrIcon } from '../../../../components';
+import { isSmallDevice } from '../../../../utils/responsive';
 
 interface HeroCardProps {
   title: string;
@@ -44,7 +45,7 @@ export const HeroCard: React.FC<HeroCardProps> = ({ title, subtitle, image, onPr
 
 const styles = StyleSheet.create({
   container: {
-    height: 200,
+    height: isSmallDevice ? 180 : 200,
     borderRadius: radius.xl + 4,
     overflow: 'hidden',
     marginBottom: spacing.lg,
@@ -57,9 +58,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: spacing.md,
     right: spacing.md,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: isSmallDevice ? 36 : 40,
+    height: isSmallDevice ? 36 : 40,
+    borderRadius: isSmallDevice ? 18 : 20,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -75,14 +76,14 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.h2,
-    fontSize: 24,
+    fontSize: isSmallDevice ? 20 : 24,
     fontWeight: '700',
     color: colors.white,
     marginBottom: spacing.xs,
   },
   subtitle: {
     ...typography.body,
-    fontSize: 14,
+    fontSize: isSmallDevice ? 13 : 14,
     color: colors.white,
     opacity: 0.9,
   },

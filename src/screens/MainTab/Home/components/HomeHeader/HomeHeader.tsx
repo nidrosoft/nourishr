@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, radius } from '../../../../../theme';
 import { NourishrIcon } from '../../../../../components';
+import { isSmallDevice, responsiveFontSize } from '../../../../../utils/responsive';
 
 interface HomeHeaderProps {
   userName?: string;
@@ -90,9 +91,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatarContainer: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: isSmallDevice ? 48 : 52,
+    height: isSmallDevice ? 48 : 52,
+    borderRadius: isSmallDevice ? 24 : 26,
     backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
@@ -104,27 +105,27 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   avatarEmoji: {
-    fontSize: 28,
+    fontSize: isSmallDevice ? 24 : 28,
   },
   greetingContainer: {
     flex: 1,
   },
   greetingSmall: {
     ...typography.caption,
-    fontSize: 14,
+    fontSize: isSmallDevice ? 13 : 14,
     color: colors.black,
     marginBottom: 2,
     fontWeight: '500',
   },
   greetingName: {
-    fontSize: 26,
+    fontSize: isSmallDevice ? 22 : 26,
     fontWeight: '700',
     color: colors.white,
   },
   notificationButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: isSmallDevice ? 40 : 44,
+    height: isSmallDevice ? 40 : 44,
+    borderRadius: isSmallDevice ? 20 : 22,
     backgroundColor: colors.white,
     borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.3)',
@@ -158,14 +159,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   greetingMessageTitle: {
-    fontSize: 25,
+    fontSize: isSmallDevice ? 22 : 25,
     fontWeight: '700',
     color: colors.white,
     marginBottom: spacing.xs,
   },
   greetingMessageSubtitle: {
     ...typography.body,
-    fontSize: 16,
+    fontSize: isSmallDevice ? 14 : 16,
     color: 'rgba(255, 255, 255, 0.9)',
     lineHeight: 22,
   },
@@ -191,7 +192,7 @@ const styles = StyleSheet.create({
   },
   searchPlaceholder: {
     ...typography.body,
-    fontSize: 15,
+    fontSize: isSmallDevice ? 14 : 15,
     color: colors.gray60,
     flex: 1,
   },

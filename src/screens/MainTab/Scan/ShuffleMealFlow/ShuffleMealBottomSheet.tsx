@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
+import { HapticFeedback } from '../../../../utils/haptics';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -227,7 +227,7 @@ export const ShuffleMealBottomSheet: React.FC<ShuffleMealBottomSheetProps> = ({
   };
 
   const handleMealTap = async (meal: any) => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await HapticFeedback.light();
     setSelectedMeal(meal);
     setShowMealDetail(true);
   };
@@ -554,10 +554,10 @@ const ResultsPanel: React.FC<{
     const newSaved = new Set(savedMeals);
     if (newSaved.has(mealId)) {
       newSaved.delete(mealId);
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await HapticFeedback.light();
     } else {
       newSaved.add(mealId);
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await HapticFeedback.success();
       // TODO: Show toast notification "Saved to your favorites!"
     }
     setSavedMeals(newSaved);

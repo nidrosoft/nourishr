@@ -18,3 +18,7 @@ export { PreferenceHeader } from './PreferenceHeader';
 export { PermissionAlert } from './PermissionAlert';
 export { Badge } from './Badge';
 export type { BadgeType } from './Badge';
+
+// Platform-specific components
+export { PlatformButton } from './PlatformButton';
+export { PlatformSegmentedControl } from './PlatformSegmentedControl';
