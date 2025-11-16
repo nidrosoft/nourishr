@@ -5,6 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, typography, spacing, radius } from '../../theme';
 import { NourishrIcon, PrimaryButton, PreferenceHeader } from '../../components';
 import { RootStackParamList } from '../../navigation/types';
+import { preferencesService } from '../../services';
 
 type PreferenceAllergiesIntolerancesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'PreferenceAllergiesIntolerances'>;
 
@@ -39,8 +40,10 @@ export const PreferenceAllergiesIntolerancesScreen: React.FC<PreferenceAllergies
   const [customAllergies, setCustomAllergies] = useState<AllergyItem[]>([]);
   const [showSeverityModal, setShowSeverityModal] = useState(false);
   const [showCustomModal, setShowCustomModal] = useState(false);
-  const [currentAllergyId, setCurrentAllergyId] = useState<string>('');
   const [customAllergyInput, setCustomAllergyInput] = useState('');
+  const [customAllergySeverity, setCustomAllergySeverity] = useState<'allergic' | 'sensitive'>('allergic');
+  const [currentAllergyId, setCurrentAllergyId] = useState<string>('');
+  const [loading, setLoading] = useState(false);
 
   const isAllergySelected = (id: string) => {
     return selectedAllergies.some(a => a.id === id) || customAllergies.some(a => a.id === id);
@@ -93,7 +96,7 @@ export const PreferenceAllergiesIntolerancesScreen: React.FC<PreferenceAllergies
     if (customAllergyInput.trim()) {
       const id = `custom-${Date.now()}`;
       setCurrentAllergyId(id);
-      setCustomAllergies(prev => [...prev, { id, label: customAllergyInput.trim() }]);
+      setCustomAllergies(prev => [...prev, { id, label: customAllergyInput.trim(), severity: customAllergySeverity }]);
       setCustomAllergyInput('');
       setShowCustomModal(false);
       // Show severity modal for the new custom allergy
@@ -101,7 +104,33 @@ export const PreferenceAllergiesIntolerancesScreen: React.FC<PreferenceAllergies
     }
   };
 
-  const isValid = true; // Optional screen, can skip
+  const isValid = selectedAllergies.length > 0 || customAllergies.length > 0;
+
+  const handleNext = async () => {
+    if (!isValid) return;
+
+    setLoading(true);
+    try {
+      await preferencesService.saveAllergies({
+        allergies: selectedAllergies.map(id => ({
+          name: COMMON_ALLERGENS.find(a => a.id === id)?.label || id,
+          severity: 'allergic'
+        })),
+        customAllergies: customAllergies.map(item => ({
+          name: item.label,
+          severity: item.severity || 'allergic'
+        }))
+      });
+
+      console.log('Allergies data saved successfully');
+      navigation.navigate('PreferenceDislikes', { gender });
+    } catch (error: any) {
+      console.error('Failed to save allergies:', error);
+      alert(`Failed to save: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -218,9 +247,9 @@ export const PreferenceAllergiesIntolerancesScreen: React.FC<PreferenceAllergies
 
       <View style={styles.buttonContainer}>
         <PrimaryButton
-          title="Next"
-          onPress={() => navigation.navigate('PreferenceDislikes', { gender })}
-          disabled={!isValid}
+          title={loading ? "Saving..." : "Next"}
+          onPress={handleNext}
+          disabled={!isValid || loading}
         />
       </View>
 

@@ -5,6 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, typography, spacing, radius } from '../../theme';
 import { NourishrIcon, PrimaryButton, PreferenceHeader } from '../../components';
 import { RootStackParamList } from '../../navigation/types';
+import { preferencesService } from '../../services';
 
 type PreferenceDietScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'PreferenceDiet'>;
 
@@ -44,6 +45,7 @@ export const PreferenceDietScreen: React.FC<PreferenceDietScreenProps> = ({ navi
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [customRuleInput, setCustomRuleInput] = useState('');
   const [showReligiousSection, setShowReligiousSection] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const toggleDiet = (id: string) => {
     setSelectedDiets(prev =>
@@ -70,6 +72,27 @@ export const PreferenceDietScreen: React.FC<PreferenceDietScreenProps> = ({ navi
   };
 
   const isValid = selectedDiets.length > 0;
+
+  const handleNext = async () => {
+    if (!isValid) return;
+
+    setLoading(true);
+    try {
+      await preferencesService.saveDiet({
+        dietPatterns: selectedDiets,
+        religiousDietaryRules: selectedRules,
+        customDietaryRules: customRules,
+      });
+
+      console.log('Diet data saved successfully');
+      navigation.navigate('PreferenceAllergiesIntolerances', { gender });
+    } catch (error: any) {
+      console.error('Failed to save diet:', error);
+      alert(`Failed to save: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -191,9 +214,9 @@ export const PreferenceDietScreen: React.FC<PreferenceDietScreenProps> = ({ navi
 
       <View style={styles.buttonContainer}>
         <PrimaryButton
-          title="Next"
-          onPress={() => navigation.navigate('PreferenceAllergiesIntolerances', { gender })}
-          disabled={!isValid}
+          title={loading ? "Saving..." : "Next"}
+          onPress={handleNext}
+          disabled={!isValid || loading}
         />
       </View>
 

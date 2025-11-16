@@ -6,6 +6,7 @@ import Slider from '@react-native-community/slider';
 import { colors, typography, spacing, radius } from '../../theme';
 import { NourishrIcon, PrimaryButton, PreferenceHeader } from '../../components';
 import { RootStackParamList } from '../../navigation/types';
+import { preferencesService } from '../../services';
 
 type PreferenceLifestyleScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'PreferenceLifestyle'>;
 
@@ -51,7 +52,9 @@ export const PreferenceLifestyleScreen: React.FC<PreferenceLifestyleScreenProps>
   const [cookOrderRatio, setCookOrderRatio] = useState(0.5); // 0=Mostly cook, 0.5=Balanced, 1=Mostly order
   const [homeCookingBudget, setHomeCookingBudget] = useState(15); // $5-$500
   const [deliveryBudget, setDeliveryBudget] = useState(30); // $10-$500
+  const [selectedWorkSchedule, setSelectedWorkSchedule] = useState<string>('');
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
   const [calorieConsciousMode, setCalorieConsciousMode] = useState(false);
   const [dailyCalorieTarget, setDailyCalorieTarget] = useState(2000); // 1200-3500
   const [pregnancyStatus, setPregnancyStatus] = useState<string | null>(null); // 'pregnant', 'breastfeeding', 'none'
@@ -93,6 +96,35 @@ export const PreferenceLifestyleScreen: React.FC<PreferenceLifestyleScreenProps>
   };
 
   const isValid = mealsPerDay !== '';
+
+  const handleNext = async () => {
+    if (!isValid) return;
+
+    setLoading(true);
+    try {
+      await preferencesService.saveLifestyle({
+        mealsPerDay,
+        cookDays,
+        orderDays,
+        cookOrderRatio,
+        homeCookingBudget,
+        deliveryBudget,
+        workSchedule: selectedWorkSchedule,
+        healthGoals: selectedGoals,
+        calorieConsciousMode,
+        dailyCalorieTarget,
+        pregnancyStatus,
+      });
+
+      console.log('Lifestyle data saved successfully');
+      navigation.navigate('PreferenceLocation');
+    } catch (error: any) {
+      console.error('Failed to save lifestyle:', error);
+      alert(`Failed to save: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -454,9 +486,9 @@ export const PreferenceLifestyleScreen: React.FC<PreferenceLifestyleScreenProps>
 
       <View style={styles.buttonContainer}>
         <PrimaryButton
-          title="Next"
-          onPress={() => navigation.navigate('PreferenceLocation')}
-          disabled={!isValid}
+          title={loading ? "Saving..." : "Next"}
+          onPress={handleNext}
+          disabled={!isValid || loading}
         />
       </View>
     </SafeAreaView>

@@ -7,6 +7,7 @@ import * as Location from 'expo-location';
 import { colors, typography, spacing, radius } from '../../theme';
 import { NourishrIcon, PrimaryButton, PreferenceHeader } from '../../components';
 import { RootStackParamList } from '../../navigation/types';
+import { preferencesService } from '../../services';
 
 type PreferenceLocationScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'PreferenceLocation'>;
 
@@ -30,6 +31,8 @@ export const PreferenceLocationScreen: React.FC<PreferenceLocationScreenProps> =
   const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
   const [isSearchingCities, setIsSearchingCities] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Function to reverse geocode coordinates to address
   const reverseGeocode = async (latitude: number, longitude: number) => {
@@ -110,9 +113,10 @@ export const PreferenceLocationScreen: React.FC<PreferenceLocationScreenProps> =
         return;
       }
 
-      // Get current position
+      // Get current position with optimized settings for speed
       const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
+        accuracy: Location.Accuracy.Balanced, // Faster than High, still accurate enough
+        timeInterval: 5000, // 5 second timeout
       });
       
       const { latitude, longitude } = location.coords;
@@ -215,6 +219,32 @@ export const PreferenceLocationScreen: React.FC<PreferenceLocationScreenProps> =
   };
 
   const isValid = useLocationPermission || cityNeighborhood.trim() !== '';
+
+  const handleNext = async () => {
+    if (!isValid) return;
+
+    setLoading(true);
+    try {
+      // Map deliveryDistance number to database-expected text values
+      const distanceMap = ['nearby', '20min', '30min', 'any'];
+      const deliveryDistanceValue = distanceMap[deliveryDistance];
+
+      await preferencesService.saveLocation({
+        cityNeighborhood,
+        preciseAddress,
+        locationCoordinates: locationCoords,
+        deliveryDistancePreference: deliveryDistanceValue,
+      });
+
+      console.log('Location data saved successfully');
+      navigation.navigate('PreferenceSummary');
+    } catch (error: any) {
+      console.error('Failed to save location:', error);
+      alert(`Failed to save: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -457,20 +487,13 @@ export const PreferenceLocationScreen: React.FC<PreferenceLocationScreenProps> =
           </View>
         )}
 
-        {/* Skip Option */}
-        <TouchableOpacity 
-          style={styles.skipButton}
-          onPress={() => navigation.navigate('PreferenceSummary')}
-        >
-          <Text style={styles.skipButtonText}>Skip for now</Text>
-        </TouchableOpacity>
       </ScrollView>
 
       <View style={styles.buttonContainer}>
         <PrimaryButton
-          title="Next"
-          onPress={() => navigation.navigate('PreferenceSummary')}
-          disabled={!isValid}
+          title={loading ? "Saving..." : "Next"}
+          onPress={handleNext}
+          disabled={!isValid || loading}
         />
       </View>
     </SafeAreaView>

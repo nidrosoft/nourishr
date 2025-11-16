@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, KeyboardAvoidingView, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, KeyboardAvoidingView, Keyboard, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { colors, typography, spacing, radius } from '../../theme';
 import { TextField, PrimaryButton, PreferenceHeader, NourishrIcon } from '../../components';
 import { RootStackParamList } from '../../navigation/types';
+import { preferencesService } from '../../services';
 
 type PreferenceIdentityScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'PreferenceIdentity'>;
 
@@ -41,12 +42,14 @@ const ALL_COUNTRIES = [
 export const PreferenceIdentityScreen: React.FC<PreferenceIdentityScreenProps> = ({ navigation }) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedGender, setSelectedGender] = useState<string | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [countrySearch, setCountrySearch] = useState('');
   const [showCountrySuggestions, setShowCountrySuggestions] = useState(false);
+  const [loading, setLoading] = useState(false);
   
   // Filter countries based on search
   const filteredCountries = useMemo(() => {
@@ -55,6 +58,12 @@ export const PreferenceIdentityScreen: React.FC<PreferenceIdentityScreenProps> =
       country.toLowerCase().includes(countrySearch.toLowerCase())
     ).slice(0, 10); // Limit to 10 suggestions
   }, [countrySearch]);
+
+  // Email validation
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
   // Calculate age from date of birth
   const calculatedAge = useMemo(() => {
@@ -83,7 +92,7 @@ export const PreferenceIdentityScreen: React.FC<PreferenceIdentityScreenProps> =
   };
 
   // Validation
-  const isValid = firstName.trim().length > 0 && dateOfBirth !== null && calculatedAge !== null && calculatedAge >= 13 && selectedGender !== null && selectedCountry !== null;
+  const isValid = firstName.trim().length > 0 && email.trim().length > 0 && isValidEmail(email) && dateOfBirth !== null && calculatedAge !== null && calculatedAge >= 13 && selectedGender !== null && selectedCountry !== null;
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
@@ -95,10 +104,28 @@ export const PreferenceIdentityScreen: React.FC<PreferenceIdentityScreenProps> =
     }
   };
 
-  const handleNext = () => {
-    if (isValid) {
-      // TODO: Save user identity data
-      navigation.navigate('PreferenceHousehold', { gender: selectedGender || undefined });
+  const handleNext = async () => {
+    if (!isValid || !dateOfBirth || !selectedGender || !selectedCountry) return;
+
+    setLoading(true);
+    try {
+      // Save identity data to database
+      await preferencesService.saveIdentity({
+        firstName: firstName.trim(),
+        lastName: lastName.trim() || undefined,
+        email: email.trim(),
+        dateOfBirth: dateOfBirth.toISOString().split('T')[0], // YYYY-MM-DD format
+        gender: selectedGender,
+        country: selectedCountry,
+      });
+
+      console.log('Identity saved, navigating to household screen');
+      navigation.navigate('PreferenceHousehold', { gender: selectedGender });
+    } catch (error: any) {
+      console.error('Failed to save identity:', error);
+      alert(`Failed to save: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -153,6 +180,28 @@ export const PreferenceIdentityScreen: React.FC<PreferenceIdentityScreenProps> =
             autoCapitalize="words"
             autoCorrect={false}
           />
+        </View>
+
+        {/* Email Address */}
+        <View style={styles.fieldContainer}>
+          <Text style={styles.fieldLabel}>
+            Email Address <Text style={styles.required}>*</Text>
+          </Text>
+          <Text style={styles.fieldHint}>
+            Required for account recovery and notifications
+          </Text>
+          <TextField
+            value={email}
+            onChangeText={setEmail}
+            placeholder="your.email@example.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="email"
+          />
+          {email.trim().length > 0 && !isValidEmail(email) && (
+            <Text style={styles.errorText}>Please enter a valid email address</Text>
+          )}
         </View>
 
         {/* Date of Birth */}
@@ -286,6 +335,7 @@ export const PreferenceIdentityScreen: React.FC<PreferenceIdentityScreenProps> =
                           setSelectedCountry(country);
                           setCountrySearch('');
                           setShowCountrySuggestions(false);
+                          Keyboard.dismiss();
                         }}
                       >
                         <Text style={styles.countrySuggestionText}>{country}</Text>
@@ -310,21 +360,25 @@ export const PreferenceIdentityScreen: React.FC<PreferenceIdentityScreenProps> =
 
       <View style={styles.buttonContainer}>
         <PrimaryButton
-          title="Next"
+          title={loading ? "Saving..." : "Next"}
           onPress={handleNext}
-          disabled={!isValid}
+          disabled={!isValid || loading}
         />
         {!isValid && firstName.trim().length > 0 && (
           <Text style={styles.validationHint}>
-            {!dateOfBirth 
-              ? 'Please select your date of birth' 
-              : calculatedAge !== null && calculatedAge < 13 
-                ? 'You must be at least 13 years old'
-                : !selectedGender
-                  ? 'Please select your gender'
-                  : !selectedCountry
-                    ? 'Please select your country'
-                    : 'Please complete all required fields'}
+            {!email.trim() 
+              ? 'Please enter your email address'
+              : !isValidEmail(email)
+                ? 'Please enter a valid email address'
+                : !dateOfBirth 
+                  ? 'Please select your date of birth' 
+                  : calculatedAge !== null && calculatedAge < 13 
+                    ? 'You must be at least 13 years old'
+                    : !selectedGender
+                      ? 'Please select your gender'
+                      : !selectedCountry
+                        ? 'Please select your country'
+                        : 'Please complete all required fields'}
           </Text>
         )}
       </View>
@@ -570,5 +624,11 @@ const styles = StyleSheet.create({
     color: colors.gray70,
     lineHeight: 20,
     flex: 1,
+  },
+  errorText: {
+    ...typography.caption,
+    fontSize: 13,
+    color: colors.error,
+    marginTop: spacing.xs,
   },
 });

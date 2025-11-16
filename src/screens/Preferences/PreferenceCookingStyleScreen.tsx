@@ -6,6 +6,7 @@ import Slider from '@react-native-community/slider';
 import { colors, typography, spacing, radius } from '../../theme';
 import { NourishrIcon, PrimaryButton, PreferenceHeader } from '../../components';
 import { RootStackParamList } from '../../navigation/types';
+import { preferencesService } from '../../services';
 
 type PreferenceCookingStyleScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'PreferenceCookingStyle'>;
 
@@ -43,6 +44,7 @@ export const PreferenceCookingStyleScreen: React.FC<PreferenceCookingStyleScreen
   const [skillLevel, setSkillLevel] = useState<string>('');
   const [timePerMeal, setTimePerMeal] = useState(1); // 0=10min, 1=20min, 2=30min, 3=45+min
   const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
   const [customEquipment, setCustomEquipment] = useState<string[]>([]);
   const [prepTolerance, setPrepTolerance] = useState<string>('');
   const [showCustomModal, setShowCustomModal] = useState(false);
@@ -72,6 +74,31 @@ export const PreferenceCookingStyleScreen: React.FC<PreferenceCookingStyleScreen
   };
 
   const isValid = skillLevel !== '' && selectedEquipment.length > 0 && prepTolerance !== '';
+
+  const handleNext = async () => {
+    if (!isValid) return;
+
+    setLoading(true);
+    try {
+      // Combine selected equipment with custom equipment
+      const allEquipment = [...selectedEquipment, ...customEquipment];
+      
+      await preferencesService.saveCookingStyle({
+        cookingSkillLevel: skillLevel,
+        timePerMealMinutes: parseInt(TIME_OPTIONS[timePerMeal].replace(/\D/g, '')) || 30,
+        kitchenEquipment: allEquipment,
+        prepTolerance: prepTolerance,
+      });
+
+      console.log('Cooking style data saved successfully');
+      navigation.navigate('PreferenceLifestyle', { gender });
+    } catch (error: any) {
+      console.error('Failed to save cooking style:', error);
+      alert(`Failed to save: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -284,9 +311,9 @@ export const PreferenceCookingStyleScreen: React.FC<PreferenceCookingStyleScreen
 
       <View style={styles.buttonContainer}>
         <PrimaryButton
-          title="Next"
-          onPress={() => navigation.navigate('PreferenceLifestyle', { gender })}
-          disabled={!isValid}
+          title={loading ? "Saving..." : "Next"}
+          onPress={handleNext}
+          disabled={!isValid || loading}
         />
       </View>
 

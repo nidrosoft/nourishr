@@ -5,6 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, typography, spacing, radius } from '../../theme';
 import { NourishrIcon, PrimaryButton, PreferenceHeader } from '../../components';
 import { RootStackParamList } from '../../navigation/types';
+import { preferencesService } from '../../services';
 
 type PreferenceHouseholdScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'PreferenceHousehold'>;
 
@@ -34,6 +35,7 @@ export const PreferenceHouseholdScreen: React.FC<PreferenceHouseholdScreenProps>
   const [customSize, setCustomSize] = useState<number>(1);
   const [householdMembers, setHouseholdMembers] = useState<string[]>([]);
   const [servingSize, setServingSize] = useState<number>(2);
+  const [loading, setLoading] = useState(false);
 
   const toggleMember = (id: string) => {
     setHouseholdMembers(prev =>
@@ -58,6 +60,31 @@ export const PreferenceHouseholdScreen: React.FC<PreferenceHouseholdScreenProps>
   };
 
   const isValid = householdSize !== '' && householdMembers.length > 0;
+
+  const handleNext = async () => {
+    if (!isValid) return;
+
+    setLoading(true);
+    try {
+      const selectedOption = HOUSEHOLD_SIZE_OPTIONS.find(opt => opt.id === householdSize);
+      const finalSize = householdSize === 'custom' ? customSize : (selectedOption?.value || 1);
+
+      await preferencesService.saveHousehold({
+        householdSize: finalSize,
+        householdType: householdSize,
+        householdMembers,
+        defaultServingSize: servingSize,
+      });
+
+      console.log('Household data saved successfully');
+      navigation.navigate('PreferenceDiet', { gender });
+    } catch (error: any) {
+      console.error('Failed to save household:', error);
+      alert(`Failed to save: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -161,9 +188,9 @@ export const PreferenceHouseholdScreen: React.FC<PreferenceHouseholdScreenProps>
 
       <View style={styles.buttonContainer}>
         <PrimaryButton
-          title="Next"
-          onPress={() => navigation.navigate('PreferenceDiet', { gender })}
-          disabled={!isValid}
+          title={loading ? "Saving..." : "Next"}
+          onPress={handleNext}
+          disabled={!isValid || loading}
         />
       </View>
     </SafeAreaView>

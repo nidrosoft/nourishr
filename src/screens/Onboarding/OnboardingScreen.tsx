@@ -106,12 +106,6 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
     onComplete();
   };
 
-  const handleDevSkip = () => {
-    // For dev: Skip onboarding AND preferences, go straight to home
-    setIsFirstLaunch(false);
-    setIsAuthenticated(true);
-  };
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header with Stepper and Skip */}
@@ -182,16 +176,6 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
           title={currentIndex === slides.length - 1 ? 'Get Started' : 'Continue'}
           onPress={handleNext}
         />
-        
-        {/* Dev Skip Button - Only on first screen */}
-        {currentIndex === 0 && (
-          <TouchableOpacity 
-            style={styles.devSkipButton}
-            onPress={handleDevSkip}
-          >
-            <Text style={styles.devSkipText}>🚀 DEV: Skip to Home</Text>
-          </TouchableOpacity>
-        )}
       </View>
     </SafeAreaView>
   );
@@ -304,20 +288,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
     paddingTop: spacing.md,
-  },
-  devSkipButton: {
-    marginTop: spacing.md,
-    paddingVertical: spacing.sm,
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
-    borderStyle: 'dashed',
-  },
-  devSkipText: {
-    ...typography.bodyMedium,
-    fontSize: 14,
-    color: colors.gray70,
   },
 });

@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, typography, spacing, radius } from '../../theme';
 import { NourishrIcon, PrimaryButton, PreferenceHeader } from '../../components';
 import { RootStackParamList } from '../../navigation/types';
+import { preferencesService } from '../../services';
 
 type PreferenceSummaryScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'PreferenceSummary'>;
 
@@ -22,6 +23,7 @@ interface SummaryCard {
 }
 
 export const PreferenceSummaryScreen: React.FC<PreferenceSummaryScreenProps> = ({ navigation }) => {
+  const [loading, setLoading] = useState(false);
   // Mock data - in a real app, this would come from context/state management
   const summaryCards: SummaryCard[] = [
     {
@@ -86,9 +88,24 @@ export const PreferenceSummaryScreen: React.FC<PreferenceSummaryScreenProps> = (
     navigation.navigate(route);
   };
 
-  const handleFinish = () => {
-    // Navigate to account setup or main app
-    navigation.navigate('AccountSetup');
+  const handleFinish = async () => {
+    setLoading(true);
+    try {
+      // Mark onboarding as complete
+      await preferencesService.completeOnboarding();
+
+      console.log('🎉 Onboarding completed successfully!');
+      console.log('User preferences saved to database');
+      console.log('User can now access the main app');
+      
+      // Navigate to account setup or main app
+      navigation.navigate('AccountSetup');
+    } catch (error: any) {
+      console.error('Failed to complete onboarding:', error);
+      alert(`Failed to complete: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -173,8 +190,9 @@ export const PreferenceSummaryScreen: React.FC<PreferenceSummaryScreenProps> = (
         </TouchableOpacity>
         <View style={styles.primaryButtonWrapper}>
           <PrimaryButton
-            title="Looks good! Finish setup"
+            title={loading ? "Completing..." : "Looks good! Finish setup"}
             onPress={handleFinish}
+            disabled={loading}
           />
         </View>
       </View>

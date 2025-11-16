@@ -5,6 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, typography, spacing, radius } from '../../theme';
 import { NourishrIcon, PrimaryButton, PreferenceHeader } from '../../components';
 import { RootStackParamList } from '../../navigation/types';
+import { preferencesService } from '../../services';
 
 type PreferenceDislikesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'PreferenceDislikes'>;
 
@@ -32,6 +33,22 @@ const DISLIKED_INGREDIENTS = [
   { id: 'sweet-sauces', label: 'Sweet sauces' },
 ];
 
+const DISLIKED_CUISINES = [
+  { id: 'italian', label: 'Italian' },
+  { id: 'mexican', label: 'Mexican' },
+  { id: 'chinese', label: 'Chinese' },
+  { id: 'japanese', label: 'Japanese' },
+  { id: 'indian', label: 'Indian' },
+  { id: 'thai', label: 'Thai' },
+  { id: 'korean', label: 'Korean' },
+  { id: 'mediterranean', label: 'Mediterranean' },
+  { id: 'middle-eastern', label: 'Middle Eastern' },
+  { id: 'american', label: 'American' },
+  { id: 'french', label: 'French' },
+  { id: 'african', label: 'African' },
+  { id: 'caribbean', label: 'Caribbean' },
+];
+
 const DISLIKED_TEXTURES = [
   { id: 'soups', label: 'Soups' },
   { id: 'stews', label: 'Stews' },
@@ -45,6 +62,7 @@ const DISLIKED_TEXTURES = [
 export const PreferenceDislikesScreen: React.FC<PreferenceDislikesScreenProps> = ({ navigation, route }) => {
   const gender = route.params?.gender;
   const [selectedIngredients, setSelectedIngredients] = useState<DislikeItem[]>([]);
+  const [selectedCuisines, setSelectedCuisines] = useState<string[]>([]);
   const [selectedTextures, setSelectedTextures] = useState<DislikeItem[]>([]);
   const [customDislikes, setCustomDislikes] = useState<DislikeItem[]>([]);
   const [showPreferenceModal, setShowPreferenceModal] = useState(false);
@@ -52,6 +70,8 @@ export const PreferenceDislikesScreen: React.FC<PreferenceDislikesScreenProps> =
   const [currentDislikeId, setCurrentDislikeId] = useState<string>('');
   const [currentDislikeType, setCurrentDislikeType] = useState<'ingredient' | 'texture' | 'custom'>('ingredient');
   const [customDislikeInput, setCustomDislikeInput] = useState('');
+  const [dislikeNotes, setDislikeNotes] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const isDislikeSelected = (id: string, type: 'ingredient' | 'texture') => {
     if (type === 'ingredient') {
@@ -120,6 +140,12 @@ export const PreferenceDislikesScreen: React.FC<PreferenceDislikesScreenProps> =
     }
   };
 
+  const toggleCuisine = (id: string) => {
+    setSelectedCuisines(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
   const addCustomDislike = () => {
     if (customDislikeInput.trim()) {
       const id = `custom-${Date.now()}`;
@@ -133,14 +159,36 @@ export const PreferenceDislikesScreen: React.FC<PreferenceDislikesScreenProps> =
     }
   };
 
-  const isValid = true; // Optional screen
+  const isValid = selectedIngredients.length > 0 || selectedCuisines.length > 0 || selectedTextures.length > 0 || customDislikes.length > 0;
+
+  const handleNext = async () => {
+    if (!isValid) return;
+
+    setLoading(true);
+    try {
+      await preferencesService.saveDislikes({
+        dislikedIngredients: selectedIngredients.map(item => item.label),
+        dislikedCuisines: selectedCuisines,
+        dislikedTextures: selectedTextures.map(item => item.label),
+        dislikeNotes: dislikeNotes || undefined,
+      });
+
+      console.log('Dislikes data saved successfully');
+      navigation.navigate('PreferenceLoves', { gender });
+    } catch (error: any) {
+      console.error('Failed to save dislikes:', error);
+      alert(`Failed to save: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <PreferenceHeader
         currentStep={5}
         totalSteps={10}
-        icon="DislikeTag"
+        icon="Danger"
         onClose={() => navigation.goBack()}
       />
 
@@ -186,6 +234,23 @@ export const PreferenceDislikesScreen: React.FC<PreferenceDislikesScreenProps> =
               </TouchableOpacity>
             );
           })}
+        </View>
+
+        {/* Cuisines You Dislike */}
+        <Text style={styles.sectionTitle}>Cuisines you dislike</Text>
+        <Text style={styles.sectionSubtitle}>Select cuisines you prefer to avoid</Text>
+        <View style={styles.chipsContainer}>
+          {DISLIKED_CUISINES.map(cuisine => (
+            <TouchableOpacity
+              key={cuisine.id}
+              style={[styles.chip, selectedCuisines.includes(cuisine.id) && styles.chipSelected]}
+              onPress={() => toggleCuisine(cuisine.id)}
+            >
+              <Text style={[styles.chipLabel, selectedCuisines.includes(cuisine.id) && styles.chipLabelSelected]}>
+                {cuisine.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Textures / Formats You Dislike */}
@@ -290,9 +355,9 @@ export const PreferenceDislikesScreen: React.FC<PreferenceDislikesScreenProps> =
 
       <View style={styles.buttonContainer}>
         <PrimaryButton
-          title="Next"
-          onPress={() => navigation.navigate('PreferenceLoves', { gender })}
-          disabled={!isValid}
+          title={loading ? "Saving..." : "Next"}
+          onPress={handleNext}
+          disabled={!isValid || loading}
         />
       </View>
 

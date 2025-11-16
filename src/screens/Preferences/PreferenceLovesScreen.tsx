@@ -6,6 +6,7 @@ import Slider from '@react-native-community/slider';
 import { colors, typography, spacing, radius } from '../../theme';
 import { NourishrIcon, PrimaryButton, PreferenceHeader } from '../../components';
 import { RootStackParamList } from '../../navigation/types';
+import { preferencesService } from '../../services';
 
 type PreferenceLovesScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'PreferenceLoves'>;
 
@@ -44,27 +45,56 @@ const MEAL_TYPES = [
   { id: 'desserts', label: 'Desserts' },
 ];
 
+const FAVORITE_INGREDIENTS = [
+  { id: 'garlic', label: 'Garlic' },
+  { id: 'cheese', label: 'Cheese' },
+  { id: 'avocado', label: 'Avocado' },
+  { id: 'bacon', label: 'Bacon' },
+  { id: 'chicken', label: 'Chicken' },
+  { id: 'beef', label: 'Beef' },
+  { id: 'seafood', label: 'Seafood' },
+  { id: 'eggs', label: 'Eggs' },
+  { id: 'tomatoes', label: 'Tomatoes' },
+  { id: 'pasta', label: 'Pasta' },
+  { id: 'rice', label: 'Rice' },
+  { id: 'potatoes', label: 'Potatoes' },
+  { id: 'herbs', label: 'Fresh herbs' },
+  { id: 'spices', label: 'Spices' },
+  { id: 'chocolate', label: 'Chocolate' },
+  { id: 'nuts', label: 'Nuts' },
+];
+
 const SPICE_LEVELS = ['Mild', 'Medium', 'Spicy', 'Very spicy'];
 
 export const PreferenceLovesScreen: React.FC<PreferenceLovesScreenProps> = ({ navigation, route }) => {
   const gender = route.params?.gender;
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>([]);
+  const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
   const [customCuisines, setCustomCuisines] = useState<string[]>([]);
   const [selectedMealTypes, setSelectedMealTypes] = useState<string[]>([]);
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [customCuisineInput, setCustomCuisineInput] = useState('');
-  
+  const [loveNotes, setLoveNotes] = useState('');
+  const [loading, setLoading] = useState(false);
+
   // Flavor profile sliders (0-3 for spice, 0-1 for others)
   const [spiceLevel, setSpiceLevel] = useState(1); // 0=Mild, 1=Medium, 2=Spicy, 3=Very spicy
   const [sweetSavory, setSweetSavory] = useState(0.3); // 0=More savory, 1=More sweet
   const [comfortExperimental, setComfortExperimental] = useState(0.5); // 0=Classic, 1=Adventurous
 
   const [showCuisineSection, setShowCuisineSection] = useState(true);
+  const [showIngredientsSection, setShowIngredientsSection] = useState(true);
   const [showFlavorSection, setShowFlavorSection] = useState(true);
   const [showMealTypeSection, setShowMealTypeSection] = useState(true);
 
   const toggleCuisine = (id: string) => {
     setSelectedCuisines(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const toggleIngredient = (id: string) => {
+    setSelectedIngredients(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
   };
@@ -87,7 +117,40 @@ export const PreferenceLovesScreen: React.FC<PreferenceLovesScreenProps> = ({ na
     setCustomCuisines(prev => prev.filter(item => item !== cuisine));
   };
 
-  const isValid = selectedCuisines.length > 0 || customCuisines.length > 0;
+  const isValid = selectedCuisines.length > 0 || customCuisines.length > 0 || selectedMealTypes.length > 0;
+
+  const handleNext = async () => {
+    if (!isValid) return;
+
+    setLoading(true);
+    try {
+      // Build flavor profile data from sliders
+      const flavorProfile = {
+        spiceLevel: SPICE_LEVELS[spiceLevel], // Convert index to label: "Mild", "Medium", "Spicy", "Very spicy"
+        sweetSavory: Math.round(sweetSavory * 100), // Convert 0-1 to 0-100 percentage
+        comfortExperimental: Math.round(comfortExperimental * 100), // Convert 0-1 to 0-100 percentage
+      };
+
+      await preferencesService.saveLoves({
+        lovedIngredients: selectedIngredients,
+        lovedCuisines: [...selectedCuisines, ...customCuisines],
+        lovedFlavors: [
+          `Spice: ${flavorProfile.spiceLevel}`,
+          `Sweet/Savory: ${flavorProfile.sweetSavory}% sweet`,
+          `Comfort/Experimental: ${flavorProfile.comfortExperimental}% adventurous`,
+        ],
+        loveNotes: loveNotes || undefined,
+      });
+
+      console.log('Loves data saved successfully:', flavorProfile);
+      navigation.navigate('PreferenceCookingStyle', { gender });
+    } catch (error: any) {
+      console.error('Failed to save loves:', error);
+      alert(`Failed to save: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -165,7 +228,47 @@ export const PreferenceLovesScreen: React.FC<PreferenceLovesScreenProps> = ({ na
           </View>
         )}
 
-        {/* Section 2: Flavor Profile */}
+        {/* Section 2: Favorite Ingredients */}
+        <TouchableOpacity
+          style={styles.sectionHeader}
+          onPress={() => setShowIngredientsSection(!showIngredientsSection)}
+        >
+          <View style={styles.sectionHeaderLeft}>
+            <NourishrIcon name="Cup" size={20} color={colors.black} variant="bold" />
+            <Text style={styles.sectionTitle}>Favorite ingredients</Text>
+          </View>
+          <NourishrIcon 
+            name={showIngredientsSection ? "ArrowUp2" : "ArrowDown2"} 
+            size={20} 
+            color={colors.gray60} 
+          />
+        </TouchableOpacity>
+
+        {showIngredientsSection && (
+          <View style={styles.sectionContent}>
+            <Text style={styles.sectionSubtitle}>Select ingredients you love</Text>
+            <View style={styles.chipsContainer}>
+              {FAVORITE_INGREDIENTS.map(ingredient => (
+                <TouchableOpacity
+                  key={ingredient.id}
+                  style={[styles.chip, selectedIngredients.includes(ingredient.id) && styles.chipSelected]}
+                  onPress={() => toggleIngredient(ingredient.id)}
+                >
+                  <Text style={[styles.chipLabel, selectedIngredients.includes(ingredient.id) && styles.chipLabelSelected]}>
+                    {ingredient.label}
+                  </Text>
+                  {selectedIngredients.includes(ingredient.id) && (
+                    <View style={styles.chipCheckmark}>
+                      <NourishrIcon name="TickCircle" size={16} color={colors.primary} variant="bold" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Section 3: Flavor Profile */}
         <TouchableOpacity
           style={styles.sectionHeader}
           onPress={() => setShowFlavorSection(!showFlavorSection)}
@@ -297,9 +400,9 @@ export const PreferenceLovesScreen: React.FC<PreferenceLovesScreenProps> = ({ na
 
       <View style={styles.buttonContainer}>
         <PrimaryButton
-          title="Next"
-          onPress={() => navigation.navigate('PreferenceCookingStyle', { gender })}
-          disabled={!isValid}
+          title={loading ? "Saving..." : "Next"}
+          onPress={handleNext}
+          disabled={!isValid || loading}
         />
       </View>
 

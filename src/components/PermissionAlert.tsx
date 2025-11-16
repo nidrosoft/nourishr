@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { colors, typography, spacing, radius } from '../theme';
 import { NourishrIcon } from './NourishrIcon';
-import { PrimaryButton } from './PrimaryButton';
+import { PrimaryButton } from './atoms/Button/PrimaryButton';
 
 const { width } = Dimensions.get('window');
 

@@ -27,7 +27,7 @@ export const AuthStackNavigator: React.FC = () => {
       <Stack.Screen
         name="SignIn"
         component={SignInScreen}
-        options={{ title: 'Sign In' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="SignUp"

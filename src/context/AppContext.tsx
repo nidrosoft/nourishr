@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserPreferences } from '../types';
+import { authService } from '../services/AuthService';
 import {
   AuthService,
-  MockAuthService,
   UserPreferencesService,
   MockUserPreferencesService,
   AIRecommendationService,
@@ -47,8 +47,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   const [hasCompletedPreferences, setHasCompletedPreferences] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize services (mock for now)
-  const authService = new MockAuthService();
+  // Initialize services
+  // authService is imported from AuthService.ts (real Supabase implementation)
   const preferencesService = new MockUserPreferencesService();
   const aiRecommendationService = new MockAIRecommendationService();
   const aiChatService = new MockAIChatService();

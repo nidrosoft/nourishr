@@ -6,8 +6,7 @@ export * from './organisms';
 // Keep backward compatibility - export from old locations
 export * from './Badge';
 export * from './NourishrIcon';
-export * from './PrimaryButton';
-export * from './SecondaryButton';
+// PrimaryButton, SecondaryButton, TertiaryButton exported from ./atoms
 export * from './TextField';
 export * from './CategoryChip';
 export * from './MealCard';
@@ -22,3 +21,8 @@ export type { BadgeType } from './Badge';
 // Platform-specific components
 export { PlatformButton } from './PlatformButton';
 export { PlatformSegmentedControl } from './PlatformSegmentedControl';
+
+// Auth components
+export { AlertModal } from './AlertModal';
+export type { AlertModalProps } from './AlertModal';
+export { OTPInput } from './OTPInput';

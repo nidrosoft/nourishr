@@ -4,6 +4,8 @@ export interface User {
   fullName: string;
   phone?: string;
   avatar?: string;
+  onboardingCompleted?: boolean;
+  onboardingStep?: number;
 }
 
 export interface UserPreferences {

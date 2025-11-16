@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Modal, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -7,6 +7,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, radius } from '../../../theme';
 import { NourishrIcon } from '../../../components';
 import { ProfileStackParamList } from '../../../navigation/types';
+import { supabase } from '../../../config/supabase';
+import { useApp } from '../../../context/AppContext';
 
 type SettingsScreenNavigationProp = NativeStackNavigationProp<ProfileStackParamList, 'Settings'>;
 
@@ -150,6 +152,9 @@ const SETTINGS_DATA: SettingCategory[] = [
 
 export const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<SettingsScreenNavigationProp>();
+  const { setIsAuthenticated } = useApp();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleItemPress = (item: SettingItem) => {
     if (item.onPress) {
@@ -157,6 +162,63 @@ export const SettingsScreen: React.FC = () => {
     } else if (item.screen) {
       // @ts-ignore - Navigation will be typed properly
       navigation.navigate(item.screen);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        Alert.alert('Error', 'No user found');
+        setIsDeleting(false);
+        return;
+      }
+
+      // Delete user preferences first
+      const { error: prefsError } = await supabase
+        .from('user_preferences')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (prefsError) {
+        console.error('Error deleting preferences:', prefsError);
+      }
+
+      // Delete user profile
+      const { error: profileError } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', user.id);
+
+      if (profileError) {
+        console.error('Error deleting profile:', profileError);
+      }
+
+      // Sign out (this clears the session)
+      await supabase.auth.signOut();
+      
+      // Reset app state
+      setIsAuthenticated(false);
+      setShowDeleteModal(false);
+      setIsDeleting(false);
+
+      Alert.alert(
+        'Account Deleted',
+        'Your account data has been deleted. You can create a new account anytime.',
+        [{ text: 'OK' }]
+      );
+    } catch (error: any) {
+      console.error('Delete account error:', error);
+      setIsDeleting(false);
+      Alert.alert(
+        'Error',
+        'Failed to delete account. Please try again or contact support.',
+        [{ text: 'OK' }]
+      );
     }
   };
 
@@ -232,11 +294,96 @@ export const SettingsScreen: React.FC = () => {
           </View>
         ))}
 
+        {/* Delete Account Section */}
+        <View style={styles.categoryContainer}>
+          <Text style={styles.categoryTitle}>Danger Zone</Text>
+          
+          <View style={styles.categoryCard}>
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={() => setShowDeleteModal(true)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.iconWrapper}>
+                <NourishrIcon 
+                  name="Trash" 
+                  size={24} 
+                  color={colors.error}
+                />
+              </View>
+              
+              <View style={styles.settingContent}>
+                <Text style={[styles.settingTitle, styles.deleteText]}>Delete Account</Text>
+                <Text style={styles.deleteSubtitle}>Permanently delete your account and all data</Text>
+              </View>
+              
+              <NourishrIcon 
+                name="ArrowRight2" 
+                size={20} 
+                color={colors.gray40} 
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* App Version */}
         <View style={styles.versionContainer}>
           <Text style={styles.versionText}>Nourishr Version 1.0.0</Text>
         </View>
       </ScrollView>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={showDeleteModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !isDeleting && setShowDeleteModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIconContainer}>
+                <NourishrIcon name="Trash" size={32} color={colors.error} />
+              </View>
+              <Text style={styles.modalTitle}>Delete Account?</Text>
+              <Text style={styles.modalMessage}>
+                This action cannot be undone. All your data including:
+              </Text>
+              <View style={styles.dataList}>
+                <Text style={styles.dataItem}>• Personal information</Text>
+                <Text style={styles.dataItem}>• Dietary preferences</Text>
+                <Text style={styles.dataItem}>• Saved recipes and meal plans</Text>
+                <Text style={styles.dataItem}>• Account history</Text>
+              </View>
+              <Text style={styles.modalWarning}>
+                will be permanently deleted.
+              </Text>
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.deleteButton]}
+                onPress={handleDeleteAccount}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <Text style={styles.deleteButtonText}>Delete Forever</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -322,5 +469,95 @@ const styles = StyleSheet.create({
   versionText: {
     ...typography.caption,
     color: colors.gray40,
+  },
+  deleteText: {
+    color: colors.error,
+  },
+  deleteSubtitle: {
+    ...typography.caption,
+    color: colors.gray60,
+    marginTop: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  modalContainer: {
+    backgroundColor: colors.white,
+    borderRadius: radius.xl,
+    width: '100%',
+    maxWidth: 400,
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    padding: spacing.xl,
+    alignItems: 'center',
+  },
+  modalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  modalTitle: {
+    ...typography.headingM,
+    color: colors.black,
+    fontWeight: '700',
+    marginBottom: spacing.sm,
+  },
+  modalMessage: {
+    ...typography.body,
+    color: colors.gray70,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+  },
+  dataList: {
+    alignSelf: 'stretch',
+    marginVertical: spacing.md,
+  },
+  dataItem: {
+    ...typography.body,
+    color: colors.gray70,
+    marginBottom: spacing.xs,
+  },
+  modalWarning: {
+    ...typography.body,
+    color: colors.gray70,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: colors.gray20,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    borderRightWidth: 1,
+    borderRightColor: colors.gray20,
+  },
+  cancelButtonText: {
+    ...typography.bodyMedium,
+    color: colors.gray70,
+    fontWeight: '600',
+  },
+  deleteButton: {
+    backgroundColor: colors.error,
+  },
+  deleteButtonText: {
+    ...typography.bodyMedium,
+    color: colors.white,
+    fontWeight: '700',
   },
 });
