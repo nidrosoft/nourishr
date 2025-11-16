@@ -1,8 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, TextInput, ScrollView, Modal, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Modal, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Haptics from 'expo-haptics';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  runOnJS,
+} from 'react-native-reanimated';
 import { colors, typography, spacing, radius } from '../../../../theme';
 import { NourishrIcon } from '../../../../components';
 
@@ -44,15 +51,10 @@ export const ItemDetectionSheet: React.FC<ItemDetectionSheetProps> = ({ item, on
   const [expirationDate, setExpirationDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showUnitPicker, setShowUnitPicker] = useState(false);
-  const slideAnim = useRef(new Animated.Value(600)).current;
+  const translateY = useSharedValue(600);
 
   useEffect(() => {
-    Animated.spring(slideAnim, {
-      toValue: 0,
-      useNativeDriver: true,
-      tension: 80,
-      friction: 10,
-    }).start();
+    translateY.value = withTiming(0, { duration: 200 });
   }, []);
 
   const handleAdd = async () => {
@@ -73,14 +75,16 @@ export const ItemDetectionSheet: React.FC<ItemDetectionSheetProps> = ({ item, on
   };
 
   const handleCancel = () => {
-    Animated.timing(slideAnim, {
-      toValue: 600,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      onCancel();
+    translateY.value = withTiming(600, { duration: 250 }, (finished) => {
+      if (finished) {
+        runOnJS(onCancel)();
+      }
     });
   };
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
 
   const incrementQuantity = () => setQuantity(quantity + 1);
   const decrementQuantity = () => setQuantity(Math.max(1, quantity - 1));
@@ -113,8 +117,8 @@ export const ItemDetectionSheet: React.FC<ItemDetectionSheetProps> = ({ item, on
         styles.container,
         {
           paddingBottom: insets.bottom + spacing.lg,
-          transform: [{ translateY: slideAnim }],
         },
+        animatedStyle,
       ]}
     >
       <View style={styles.handle} />

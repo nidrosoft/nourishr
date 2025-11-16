@@ -1,8 +1,13 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Animated } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { colors, typography, spacing, radius } from '../../../theme';
-import { slideUpBottomSheet, slideDownBottomSheet } from '../../../theme/animations';
 import { NourishrIcon } from '../../../components';
 import { CookWhatIHaveFlow } from './CookWhatIHaveFlow';
 import { ShuffleMealBottomSheet } from './ShuffleMealFlow';
@@ -78,19 +83,21 @@ export const ScanBottomSheet: React.FC<ScanBottomSheetProps> = ({ visible, onClo
   const [showMealNutritionFlow, setShowMealNutritionFlow] = useState(false);
   const [showBarcodeFlow, setShowBarcodeFlow] = useState(false);
   const [showSmartPantryScan, setShowSmartPantryScan] = useState(false);
-  const slideAnim = useRef(new Animated.Value(BOTTOM_SHEET_HEIGHT)).current;
+  const translateY = useSharedValue(BOTTOM_SHEET_HEIGHT);
 
   useEffect(() => {
     if (visible) {
-      // Reset to bottom before animating up (ensures animation plays every time)
-      slideAnim.setValue(BOTTOM_SHEET_HEIGHT);
-      // Slide up with smooth spring animation
-      slideUpBottomSheet(slideAnim, 0).start();
+      // Slide up fast
+      translateY.value = withTiming(0, { duration: 200 });
     } else {
-      // Slide down smoothly
-      slideDownBottomSheet(slideAnim, BOTTOM_SHEET_HEIGHT).start();
+      // Slide down fast
+      translateY.value = withTiming(BOTTOM_SHEET_HEIGHT, { duration: 200 });
     }
   }, [visible]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
 
   const handleModeSelect = (modeId: string) => {
     setSelectedMode(modeId);
@@ -179,8 +186,8 @@ export const ScanBottomSheet: React.FC<ScanBottomSheetProps> = ({ visible, onClo
           styles.bottomSheet, 
           { 
             paddingBottom: insets.bottom + spacing.lg,
-            transform: [{ translateY: slideAnim }],
-          }
+          },
+          animatedStyle,
         ]}
         pointerEvents="auto"
       >

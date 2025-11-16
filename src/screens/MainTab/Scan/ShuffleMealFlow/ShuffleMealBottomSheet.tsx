@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,16 +6,24 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
-  Animated,
   TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  withRepeat,
+  withSequence,
+} from 'react-native-reanimated';
 import { colors, typography, spacing, radius } from '../../../../theme';
-import { slideUpBottomSheet, slideDownBottomSheet } from '../../../../theme/animations';
 import { NourishrIcon } from '../../../../components';
+import { MealDetailBottomSheet } from './MealDetailBottomSheet';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 type MealType = 'breakfast' | 'brunch' | 'lunch' | 'dinner' | 'snack' | 'dessert' | 'drink';
 type Mood =
@@ -89,16 +97,16 @@ export const ShuffleMealBottomSheet: React.FC<ShuffleMealBottomSheetProps> = ({
   const [showCustomMoodInput, setShowCustomMoodInput] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState(LOADING_MESSAGES[0]);
   const [shuffledMeals, setShuffledMeals] = useState<any[]>([]);
+  const [selectedMeal, setSelectedMeal] = useState<any>(null);
+  const [showMealDetail, setShowMealDetail] = useState(false);
 
-  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const heightAnim = useRef(new Animated.Value(0.7)).current;
+  const translateY = useSharedValue(SCREEN_HEIGHT);
 
   useEffect(() => {
     if (visible) {
-      slideAnim.setValue(SCREEN_HEIGHT);
-      slideUpBottomSheet(slideAnim, 0).start();
+      translateY.value = withTiming(0, { duration: 200 });  // Fast animation
     } else {
-      slideDownBottomSheet(slideAnim, SCREEN_HEIGHT).start();
+      translateY.value = withTiming(SCREEN_HEIGHT, { duration: 200 });
       // Reset state when closed
       setTimeout(() => {
         setFlowState('options');
@@ -106,9 +114,13 @@ export const ShuffleMealBottomSheet: React.FC<ShuffleMealBottomSheetProps> = ({
         setSelectedMoods([]);
         setCustomMood('');
         setShowCustomMoodInput(false);
-      }, 300);
+      }, 200);
     }
   }, [visible]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
 
   useEffect(() => {
     if (flowState === 'shuffling') {
@@ -126,26 +138,39 @@ export const ShuffleMealBottomSheet: React.FC<ShuffleMealBottomSheetProps> = ({
           {
             id: '1',
             name: 'Greek Yogurt Parfait',
-            description: 'the clean cute breakfast you needed',
+            description: 'A perfectly balanced breakfast that combines creamy Greek yogurt with fresh berries and crunchy granola. This protein-packed meal will keep you energized all morning while satisfying your sweet tooth in the healthiest way possible.',
             tags: ['10 min', 'High protein', 'Uses what you have', 'Low calories'],
             calories: 280,
             time: '10 min',
+            category: 'Breakfast',
+            subcategory: 'Healthy Bowl',
+            rating: 4.8,
+            priceRange: '$10 - $15',
           },
           {
             id: '2',
             name: 'Avocado Toast Supreme',
-            description: 'because basic can still be delicious 🥑',
+            description: 'Elevate your basic avocado toast with perfectly ripe avocados, a drizzle of olive oil, and a sprinkle of red pepper flakes. This simple yet sophisticated dish delivers healthy fats and incredible flavor that proves basic can be absolutely delicious.',
             tags: ['5 min', 'Healthy fats', 'Quick', 'Vegetarian'],
             calories: 320,
             time: '5 min',
+            category: 'Brunch',
+            subcategory: 'Toast',
+            rating: 4.6,
+            priceRange: '$8 - $12',
+            promo: 'Popular',
           },
           {
             id: '3',
             name: 'Berry Smoothie Bowl',
-            description: 'Instagram-worthy and actually tasty 📸',
+            description: 'A vibrant blend of mixed berries, banana, and almond milk topped with your favorite toppings. Not only is it Instagram-worthy, but it\'s packed with antioxidants and natural sweetness that will make your taste buds dance.',
             tags: ['8 min', 'Antioxidants', 'Refreshing', 'Vegan'],
             calories: 250,
             time: '8 min',
+            category: 'Breakfast',
+            subcategory: 'Smoothie Bowl',
+            rating: 4.9,
+            priceRange: '$12 - $18',
           },
         ];
         setShuffledMeals(mockMeals);
@@ -193,12 +218,7 @@ export const ShuffleMealBottomSheet: React.FC<ShuffleMealBottomSheetProps> = ({
       setSelectedMealTypes([defaultMeal]);
     }
 
-    // Expand height and start shuffling
-    Animated.timing(heightAnim, {
-      toValue: 0.85,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
+    // Start shuffling
     setFlowState('shuffling');
   };
 
@@ -206,9 +226,10 @@ export const ShuffleMealBottomSheet: React.FC<ShuffleMealBottomSheetProps> = ({
     setFlowState('shuffling');
   };
 
-  const handleMealTap = (meal: any) => {
-    // TODO: Navigate to meal detail view
-    console.log('Open meal detail:', meal);
+  const handleMealTap = async (meal: any) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedMeal(meal);
+    setShowMealDetail(true);
   };
 
   const getBottomSheetHeight = () => {
@@ -220,7 +241,8 @@ export const ShuffleMealBottomSheet: React.FC<ShuffleMealBottomSheetProps> = ({
   if (!visible) return null;
 
   return (
-    <View style={styles.container} pointerEvents="box-none">
+    <>
+      <View style={styles.container} pointerEvents="box-none">
       {/* Dark Overlay */}
       <TouchableOpacity
         style={styles.overlay}
@@ -232,10 +254,7 @@ export const ShuffleMealBottomSheet: React.FC<ShuffleMealBottomSheetProps> = ({
       <Animated.View
         style={[
           styles.bottomSheet,
-          {
-            height: getBottomSheetHeight(),
-            transform: [{ translateY: slideAnim }],
-          },
+          animatedStyle,
         ]}
       >
         {/* Handle */}
@@ -293,6 +312,16 @@ export const ShuffleMealBottomSheet: React.FC<ShuffleMealBottomSheetProps> = ({
         )}
       </Animated.View>
     </View>
+
+    {/* Meal Detail Bottom Sheet */}
+    {showMealDetail && selectedMeal && (
+      <MealDetailBottomSheet
+        visible={showMealDetail}
+        meal={selectedMeal}
+        onClose={() => setShowMealDetail(false)}
+      />
+    )}
+  </>
   );
 };
 
@@ -452,33 +481,64 @@ const OptionsPanel: React.FC<{
 
 // SHUFFLING PANEL COMPONENT
 const ShufflingPanel: React.FC<{ loadingMessage: string }> = ({ loadingMessage }) => {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const scale = useSharedValue(1);
 
   useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(scaleAnim, {
-          toValue: 1.1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
+    scale.value = withRepeat(
+      withSequence(
+        withTiming(1.1, { duration: 800 }),
+        withTiming(1, { duration: 800 })
+      ),
+      -1,  // Infinite loop
+      true // Reverse
+    );
   }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   return (
     <View style={styles.shufflingContainer}>
-      <Animated.View style={[styles.slotMachine, { transform: [{ scale: scaleAnim }] }]}>
+      <Animated.View style={[styles.slotMachine, animatedStyle]}>
         <Text style={styles.slotEmoji}>🎰</Text>
       </Animated.View>
       <Text style={styles.loadingMessage}>{loadingMessage}</Text>
     </View>
   );
+};
+
+// Helper function to get tag colors
+const getTagColors = (tag: string) => {
+  const tagLower = tag.toLowerCase();
+  
+  // Time-based tags
+  if (tagLower.includes('min')) {
+    return { bg: '#FFF4E6', text: '#F59E0B' }; // Amber
+  }
+  // Protein/nutrition tags
+  if (tagLower.includes('protein') || tagLower.includes('calories')) {
+    return { bg: '#DBEAFE', text: '#3B82F6' }; // Blue
+  }
+  // Health/diet tags
+  if (tagLower.includes('healthy') || tagLower.includes('fats') || tagLower.includes('antioxidants')) {
+    return { bg: '#D1FAE5', text: '#10B981' }; // Green
+  }
+  // Speed/convenience tags
+  if (tagLower.includes('quick') || tagLower.includes('uses what you have')) {
+    return { bg: '#FCE7F3', text: '#EC4899' }; // Pink
+  }
+  // Diet type tags
+  if (tagLower.includes('vegan') || tagLower.includes('vegetarian')) {
+    return { bg: '#E0E7FF', text: '#6366F1' }; // Indigo
+  }
+  // Refreshing/fresh tags
+  if (tagLower.includes('refreshing')) {
+    return { bg: '#CFFAFE', text: '#06B6D4' }; // Cyan
+  }
+  
+  // Default
+  return { bg: '#F3F4F6', text: '#6B7280' }; // Gray
 };
 
 // RESULTS PANEL COMPONENT
@@ -488,12 +548,32 @@ const ResultsPanel: React.FC<{
   onRollAgain: () => void;
   onClose: () => void;
 }> = ({ meals, onMealTap, onRollAgain, onClose }) => {
+  const [savedMeals, setSavedMeals] = React.useState<Set<string>>(new Set());
+
+  const handleSaveMeal = async (mealId: string) => {
+    const newSaved = new Set(savedMeals);
+    if (newSaved.has(mealId)) {
+      newSaved.delete(mealId);
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } else {
+      newSaved.add(mealId);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // TODO: Show toast notification "Saved to your favorites!"
+    }
+    setSavedMeals(newSaved);
+  };
+
   return (
     <>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Here's what I found for you 😋</Text>
-        <Text style={styles.headerSubtext}>Tap one to explore or roll again.</Text>
+      {/* Header with Close Button */}
+      <View style={styles.resultsHeaderContainer}>
+        <View style={styles.resultsHeader}>
+          <Text style={styles.title}>Here is what we found for you 😋</Text>
+          <Text style={styles.subtitle}>Tap one to explore or roll again.</Text>
+        </View>
+        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <NourishrIcon name="CloseCircle" size={28} color={colors.gray60} />
+        </TouchableOpacity>
       </View>
 
       {/* Meal Cards */}
@@ -504,33 +584,52 @@ const ResultsPanel: React.FC<{
             style={styles.mealCard}
             onPress={() => onMealTap(meal)}
           >
+            {/* Heart Icon */}
+            <TouchableOpacity
+              style={styles.heartButton}
+              onPress={() => handleSaveMeal(meal.id)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <NourishrIcon
+                name={savedMeals.has(meal.id) ? "Heart" : "Heart"}
+                size={24}
+                color={savedMeals.has(meal.id) ? colors.primary : colors.gray40}
+                variant={savedMeals.has(meal.id) ? "Bold" : "Linear"}
+              />
+            </TouchableOpacity>
             <View style={styles.mealCardHeader}>
               <View style={styles.mealCardInfo}>
                 <Text style={styles.mealName}>{meal.name}</Text>
-                <Text style={styles.mealDescription}>{meal.description}</Text>
+                <Text style={styles.mealDescription} numberOfLines={1} ellipsizeMode="tail">
+                  {meal.description}
+                </Text>
               </View>
-              <NourishrIcon name="ArrowRight2" size={24} color={colors.primary} />
             </View>
             <View style={styles.mealTags}>
-              {meal.tags.map((tag: string, index: number) => (
-                <View key={index} style={styles.mealTag}>
-                  <Text style={styles.mealTagText}>{tag}</Text>
-                </View>
-              ))}
+              {meal.tags.map((tag: string, index: number) => {
+                const tagColors = getTagColors(tag);
+                return (
+                  <View key={index} style={[styles.mealTag, { backgroundColor: tagColors.bg }]}>
+                    <Text style={[styles.mealTagText, { color: tagColors.text }]}>{tag}</Text>
+                  </View>
+                );
+              })}
             </View>
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* Action Buttons */}
-      <View style={styles.resultActions}>
-        <TouchableOpacity style={styles.rollAgainButton} onPress={onRollAgain}>
-          <Text style={styles.rollAgainButtonText}>Roll again 🔄</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.saveButton} onPress={onClose}>
-          <Text style={styles.saveButtonText}>Save for later ⭐</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Roll Again Button */}
+      <TouchableOpacity onPress={onRollAgain}>
+        <LinearGradient
+          colors={['#FF9500', '#FD6A2F']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.rollAgainButton}
+        >
+          <Text style={styles.rollAgainButtonText}>Roll again</Text>
+        </LinearGradient>
+      </TouchableOpacity>
     </>
   );
 };
@@ -582,6 +681,32 @@ const styles = StyleSheet.create({
   },
   headerText: {
     flex: 1,
+  },
+  headerTitle: {
+    ...typography.headingM,
+    color: colors.black,
+    fontWeight: '700',
+    marginBottom: 4,
+    fontSize: 20,
+  },
+  headerSubtext: {
+    ...typography.caption,
+    color: colors.gray60,
+    fontSize: 14,
+    marginBottom: spacing.md,
+  },
+  resultsHeaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.lg,
+  },
+  resultsHeader: {
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  closeButton: {
+    padding: spacing.xs,
   },
   title: {
     ...typography.h2,
@@ -735,6 +860,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
+    position: 'relative',
+  },
+  heartButton: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    zIndex: 10,
+    padding: spacing.xs,
   },
   mealCardHeader: {
     flexDirection: 'row',
@@ -761,25 +894,22 @@ const styles = StyleSheet.create({
   mealTags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.xs,
+    gap: 6,
   },
   mealTag: {
     backgroundColor: colors.gray10,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs / 2,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
     borderRadius: radius.sm,
   },
   mealTagText: {
     ...typography.caption,
     color: colors.gray70,
-  },
-  resultActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
+    fontSize: 11,
+    fontWeight: '500',
   },
   rollAgainButton: {
-    flex: 1,
-    backgroundColor: colors.primary,
+    width: '100%',
     paddingVertical: spacing.md + 2,
     borderRadius: radius.full,
     alignItems: 'center',
@@ -788,22 +918,6 @@ const styles = StyleSheet.create({
   rollAgainButtonText: {
     ...typography.bodyMedium,
     color: colors.white,
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  saveButton: {
-    flex: 1,
-    backgroundColor: colors.white,
-    paddingVertical: spacing.md + 2,
-    borderRadius: radius.full,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveButtonText: {
-    ...typography.bodyMedium,
-    color: colors.primary,
     fontWeight: '600',
     fontSize: 16,
   },

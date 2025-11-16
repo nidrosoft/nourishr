@@ -1,4 +1,11 @@
-import { Animated, Easing } from 'react-native';
+import { 
+  withSpring, 
+  withTiming, 
+  Easing,
+  SharedValue,
+  WithSpringConfig,
+  WithTimingConfig,
+} from 'react-native-reanimated';
 
 // Animation durations (in milliseconds)
 export const ANIMATION_DURATION = {
@@ -10,114 +17,118 @@ export const ANIMATION_DURATION = {
   pageTransition: 250,
 };
 
-// Easing functions
-export const EASING = {
+// Easing functions (Reanimated compatible)
+export const EASING_FUNCTIONS = {
   easeInOut: Easing.bezier(0.4, 0.0, 0.2, 1),
   easeOut: Easing.bezier(0.0, 0.0, 0.2, 1),
   easeIn: Easing.bezier(0.4, 0.0, 1, 1),
-  spring: Easing.elastic(1),
+  linear: Easing.linear,
 };
 
-// Bottom Sheet Animation
+// Spring configurations
+export const SPRING_CONFIGS = {
+  default: {
+    damping: 11,
+    stiffness: 65,
+    mass: 1,
+  } as WithSpringConfig,
+  bouncy: {
+    damping: 10,
+    stiffness: 80,
+    mass: 1,
+  } as WithSpringConfig,
+  gentle: {
+    damping: 15,
+    stiffness: 50,
+    mass: 1,
+  } as WithSpringConfig,
+  stiff: {
+    damping: 7,
+    stiffness: 100,
+    mass: 1,
+  } as WithSpringConfig,
+};
+
+// Bottom Sheet Animations (Reanimated 3)
 export const slideUpBottomSheet = (
-  animatedValue: Animated.Value,
-  toValue: number = 0,
-  duration: number = ANIMATION_DURATION.bottomSheet
+  animatedValue: SharedValue<number>,
+  toValue: number = 0
 ) => {
-  return Animated.spring(animatedValue, {
-    toValue,
-    useNativeDriver: true,
-    tension: 65,
-    friction: 11,
-    velocity: 2,
-  });
+  'worklet';
+  animatedValue.value = withSpring(toValue, SPRING_CONFIGS.default);
 };
 
 export const slideDownBottomSheet = (
-  animatedValue: Animated.Value,
+  animatedValue: SharedValue<number>,
   toValue: number,
   duration: number = ANIMATION_DURATION.bottomSheet
 ) => {
-  return Animated.timing(animatedValue, {
-    toValue,
+  'worklet';
+  animatedValue.value = withTiming(toValue, {
     duration,
-    easing: EASING.easeInOut,
-    useNativeDriver: true,
+    easing: EASING_FUNCTIONS.easeInOut,
   });
 };
 
-// Toast Animation
+// Toast Animations (Reanimated 3)
 export const slideDownToast = (
-  animatedValue: Animated.Value,
-  duration: number = ANIMATION_DURATION.toast
+  animatedValue: SharedValue<number>,
+  toValue: number = 0
 ) => {
-  return Animated.spring(animatedValue, {
-    toValue: 0,
-    useNativeDriver: true,
-    tension: 80,
-    friction: 10,
-  });
+  'worklet';
+  animatedValue.value = withSpring(toValue, SPRING_CONFIGS.bouncy);
 };
 
 export const slideUpToast = (
-  animatedValue: Animated.Value,
+  animatedValue: SharedValue<number>,
   toValue: number,
   duration: number = ANIMATION_DURATION.toast
 ) => {
-  return Animated.timing(animatedValue, {
-    toValue,
+  'worklet';
+  animatedValue.value = withTiming(toValue, {
     duration,
-    easing: EASING.easeOut,
-    useNativeDriver: true,
+    easing: EASING_FUNCTIONS.easeOut,
   });
 };
 
-// Fade Animation
+// Fade Animations (Reanimated 3)
 export const fadeIn = (
-  animatedValue: Animated.Value,
+  animatedValue: SharedValue<number>,
   duration: number = ANIMATION_DURATION.normal
 ) => {
-  return Animated.timing(animatedValue, {
-    toValue: 1,
+  'worklet';
+  animatedValue.value = withTiming(1, {
     duration,
-    easing: EASING.easeOut,
-    useNativeDriver: true,
+    easing: EASING_FUNCTIONS.easeOut,
   });
 };
 
 export const fadeOut = (
-  animatedValue: Animated.Value,
+  animatedValue: SharedValue<number>,
   duration: number = ANIMATION_DURATION.normal
 ) => {
-  return Animated.timing(animatedValue, {
-    toValue: 0,
+  'worklet';
+  animatedValue.value = withTiming(0, {
     duration,
-    easing: EASING.easeIn,
-    useNativeDriver: true,
+    easing: EASING_FUNCTIONS.easeIn,
   });
 };
 
-// Scale Animation
+// Scale Animations (Reanimated 3)
 export const scaleIn = (
-  animatedValue: Animated.Value,
-  duration: number = ANIMATION_DURATION.fast
+  animatedValue: SharedValue<number>
 ) => {
-  return Animated.spring(animatedValue, {
-    toValue: 1,
-    useNativeDriver: true,
-    tension: 100,
-    friction: 7,
-  });
+  'worklet';
+  animatedValue.value = withSpring(1, SPRING_CONFIGS.stiff);
 };
 
 export const scaleOut = (
-  animatedValue: Animated.Value,
+  animatedValue: SharedValue<number>,
   duration: number = ANIMATION_DURATION.fast
 ) => {
-  return Animated.timing(animatedValue, {
-    toValue: 0,
+  'worklet';
+  animatedValue.value = withTiming(0, {
     duration,
-    easing: EASING.easeIn,
-    useNativeDriver: true,
+    easing: EASING_FUNCTIONS.easeIn,
   });
 };

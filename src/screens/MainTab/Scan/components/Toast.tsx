@@ -1,6 +1,14 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  withDelay,
+  runOnJS,
+} from 'react-native-reanimated';
 import { colors, typography, spacing, radius } from '../../../../theme';
 import { NourishrIcon } from '../../../../components';
 
@@ -12,47 +20,35 @@ interface ToastProps {
 
 export const Toast: React.FC<ToastProps> = ({ message, visible, onHide }) => {
   const insets = useSafeAreaInsets();
-  const translateY = useRef(new Animated.Value(-100)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useSharedValue(-100);
+  const opacity = useSharedValue(0);
 
   useEffect(() => {
     if (visible) {
-      // Slide in
-      Animated.parallel([
-        Animated.spring(translateY, {
-          toValue: 0,
-          useNativeDriver: true,
-          tension: 80,
-          friction: 10,
-        }),
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      // Slide in with spring animation
+      translateY.value = withSpring(0, {
+        damping: 10,
+        stiffness: 80,
+      });
+      opacity.value = withTiming(1, { duration: 200 });
 
       // Auto hide after 3 seconds
-      const timer = setTimeout(() => {
-        Animated.parallel([
-          Animated.timing(translateY, {
-            toValue: -100,
-            duration: 250,
-            useNativeDriver: true,
-          }),
-          Animated.timing(opacity, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-        ]).start(() => {
-          onHide();
-        });
-      }, 3000);
-
-      return () => clearTimeout(timer);
+      translateY.value = withDelay(
+        3000,
+        withTiming(-100, { duration: 250 }, (finished) => {
+          if (finished) {
+            runOnJS(onHide)();
+          }
+        })
+      );
+      opacity.value = withDelay(3000, withTiming(0, { duration: 200 }));
     }
   }, [visible]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+    opacity: opacity.value,
+  }));
 
   if (!visible) return null;
 
@@ -62,9 +58,8 @@ export const Toast: React.FC<ToastProps> = ({ message, visible, onHide }) => {
         styles.container,
         {
           top: insets.top + spacing.md,
-          transform: [{ translateY }],
-          opacity,
         },
+        animatedStyle,
       ]}
     >
       <View style={styles.iconContainer}>

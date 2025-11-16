@@ -1,7 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Camera, CameraView } from 'expo-camera';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { colors, typography, spacing, radius } from '../../../theme';
 import { NourishrIcon } from '../../../components';
 import { ItemDetectionSheet } from './components/ItemDetectionSheet';
@@ -21,7 +28,7 @@ export const SmartPantryScan: React.FC<SmartPantryScanProps> = ({ onClose, onIte
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const cameraRef = useRef<any>(null);
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const scale = useSharedValue(1);
 
   useEffect(() => {
     (async () => {
@@ -31,22 +38,20 @@ export const SmartPantryScan: React.FC<SmartPantryScanProps> = ({ onClose, onIte
   }, []);
 
   useEffect(() => {
-    // Pulse animation for scan button
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
+    // Pulse animation for scan button (Reanimated 3)
+    scale.value = withRepeat(
+      withSequence(
+        withTiming(1.1, { duration: 1000 }),
+        withTiming(1, { duration: 1000 })
+      ),
+      -1,  // Infinite loop
+      true // Reverse
+    );
   }, []);
+
+  const pulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   const handleCapture = async () => {
     if (!cameraRef.current || isProcessing) return;
@@ -139,7 +144,7 @@ export const SmartPantryScan: React.FC<SmartPantryScanProps> = ({ onClose, onIte
 
           {/* Capture Button */}
           <View style={styles.captureContainer}>
-            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+            <Animated.View style={pulseStyle}>
               <TouchableOpacity
                 style={[styles.captureButton, isProcessing && styles.captureButtonProcessing]}
                 onPress={handleCapture}
